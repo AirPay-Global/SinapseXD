@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Builds
+.next/
+out/
+dist/
+build/
+.turbo/
+
+# Env & secrets
+.env
+.env.local
+.env*.local
+
+# Supabase
+supabase/.temp/
+
+# Logs & misc
+*.log
+.DS_Store
+coverage/
+.vercel
