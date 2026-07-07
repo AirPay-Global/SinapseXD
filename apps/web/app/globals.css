@@ -1,0 +1,87 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* AirPay Global Brand */
+  --brand-navy: #0d2b4e;
+  --brand-blue: #1b6cc8;
+  --brand-orange: #f5a200;
+  --brand-light-blue: #ebf2fc;
+  --brand-light-blue2: #f0f7ff;
+
+  /* Semantic tokens (light mode) */
+  --background: #ffffff;
+  --foreground: #0d2b4e;
+  --card: #f4f7fb;
+  --card-foreground: #0d2b4e;
+  --primary: #1b6cc8;
+  --primary-foreground: #ffffff;
+  --accent: #f5a200;
+  --accent-foreground: #ffffff;
+  --muted: #ebf2fc;
+  --muted-foreground: #64748b;
+  --border: #c5d5e8;
+  --ring: #1b6cc8;
+  --radius: 0.625rem;
+
+  /* Status colours */
+  --success: #0d7a4e;
+  --warning: #b45309;
+  --destructive: #dc2626;
+  --info: #0e7490;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-heading: "Sora", "Inter", system-ui, sans-serif;
+
+  /* ── Chart system (validated: dataviz six checks, light surface #FFFFFF) ── */
+  --chart-1: #1b6cc8; /* blue    */
+  --chart-2: #0d9488; /* teal    */
+  --chart-3: #d97706; /* amber   */
+  --chart-4: #7c3aed; /* violet  */
+  --chart-5: #059669; /* green   */
+  --chart-6: #dc2626; /* red     */
+  --chart-7: #0891b2; /* cyan    */
+  --chart-8: #db2777; /* magenta */
+
+  /* Chart chrome */
+  --chart-grid: #e4ebf4;
+  --chart-axis: #b9c9dd;
+  --chart-ink: #0d2b4e;
+  --chart-ink-secondary: #64748b;
+  --chart-ink-muted: #8aa0b8;
+}
+
+[data-theme="dark"] {
+  --background: #0a1e36;
+  --foreground: #f8fafc;
+  --card: #0d2b4e;
+  --card-foreground: #f8fafc;
+  --muted: #183868;
+  --muted-foreground: #94a3b8;
+  --border: #2d5a8e;
+
+  /* Chart system (validated: dataviz six checks, dark surface #0D2B4E) */
+  --chart-1: #3987e5;
+  --chart-2: #14957f;
+  --chart-3: #c98500;
+  --chart-4: #8f7ee0;
+  --chart-5: #10a567;
+  --chart-6: #e66767;
+  --chart-7: #0ea5c9;
+  --chart-8: #d55181;
+
+  --chart-grid: #1c3f6b;
+  --chart-axis: #2d5a8e;
+  --chart-ink: #f8fafc;
+  --chart-ink-secondary: #94a3b8;
+  --chart-ink-muted: #64748b;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
