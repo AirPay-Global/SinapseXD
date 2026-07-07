@@ -6,6 +6,19 @@
 
 ---
 
+## ⚠️ CURRENT BUILD FOCUS (July 2026)
+
+**We are building Sinapse XD ONLY — the standalone intelligence layer, as a big-data dashboard product.**
+
+- Sinapse XD must function **fully independently of Sinapse CRM**. No feature may depend on CRM data being present.
+- The platform is driven by the **6 external data pillars** (AIS/vessels, trade analytics, market intel, weather, financial data, SDG reporting), delivered as **role-based dashboards** for ports, governments, DFIs, and AfCFTA/APRM institutions.
+- Sinapse CRM is a **future, optional 7th data source**. The CRM ingestion path (`crm_ingestor.py`, `crm.port.events` queue, CRM screens under `/crm`) is **out of scope** for now — keep the ingestion architecture pluggable so CRM can slot in later, but do not build it.
+- When CRM data is absent (the default), dashboards render entirely from external pillar data — no empty states caused by missing CRM feeds.
+
+Everything below describes the full long-term platform. Where it conflicts with this focus statement, this focus statement wins.
+
+---
+
 ## 1. What We Are Building
 
 Sinapse XD is a federated trade intelligence platform that aggregates six external data streams plus a proprietary port operational data node (Sinapse CRM) into a single decision-ready intelligence layer for:
@@ -723,21 +736,26 @@ services:
 
 Start here. Everything else follows.
 
+**Scope note:** Per the Current Build Focus, Sinapse CRM and the CRM → XD sync are deferred. Phase 1 builds Sinapse XD as a standalone big-data dashboard on external pillar data only.
+
 | Priority | Module | Deliverable |
 |----------|--------|-------------|
 | P0 | Auth & Orgs | Clerk multi-tenant setup, role-based routing |
 | P0 | Supabase Setup | Schema migrations, RLS policies, Realtime enabled on vessel tables |
-| P0 | Sinapse CRM | Vessel scheduling board, cargo manifest, tariff entry |
-| P0 | CRM → XD Sync | crm_ingestor.py + BullMQ queue (Upstash Redis) |
-| P1 | AIS Ingestor | MarineTraffic integration + live vessel map (Mapbox) |
-| P1 | Port Dashboard | Berth utilisation, vessel queue, KPI cards |
-| P1 | Data Schema | Full Prisma schema, time-series partitioned tables in Supabase |
+| P0 | Data Schema | Full Prisma schema, time-series partitioned tables in Supabase |
+| P0 | AIS Ingestor | MarineTraffic integration + live vessel map (Mapbox) |
+| P1 | Port Dashboard | Vessel traffic, port-call analytics, KPI cards (external data only) |
+| P1 | Trade Analytics | UN Comtrade ingestor + corridor flow maps |
+| P1 | Weather Ingestor | StormGlass/NOAA marine conditions + disruption signals |
 | P2 | AI Briefings | Claude API corridor intelligence integration |
-| P2 | Trade Analytics | UN Comtrade ingestor + corridor flow maps |
+| P2 | Market Intel | Freight rate ingestors + benchmarking views |
+| P2 | Financial Data | IMF/World Bank ingestors + economic indicator views |
 | P2 | SDG Dashboard | SDG 8/9/10/17 indicator cards |
-| P3 | Data API | Authenticated external API with rate limiting |
 | P3 | Government View | AfCFTA monitoring, APRM report generation |
+| P3 | Data API | Authenticated external API with rate limiting |
 | P3 | Billing | Stripe subscriptions per org |
+| Deferred | Sinapse CRM | Vessel scheduling board, cargo manifest, tariff entry |
+| Deferred | CRM → XD Sync | crm_ingestor.py + BullMQ queue (pluggable 7th pillar) |
 
 ---
 
