@@ -57,6 +57,7 @@ export function vesselQueue(portId = "durban"): VesselPosition[] {
     const hoursOut = Math.round(2 + r() * 96);
     const statuses = ["underway", "at_anchor", "expected", "underway", "delayed"] as const;
     return {
+      mmsi: String(600000000 + Math.floor(r() * 99999999)),
       imo: String(9300000 + Math.floor(r() * 99999)),
       name,
       type: VESSEL_TYPES[Math.floor(r() * VESSEL_TYPES.length)],

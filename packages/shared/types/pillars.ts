@@ -34,6 +34,9 @@ export type VesselStatus =
   | "delayed";
 
 export interface VesselPosition {
+  /** MMSI is the reliable AIS identity key; IMO is often absent from AIS reports. */
+  mmsi: string;
+  /** May be empty — many AIS transponders don't broadcast IMO. */
   imo: string;
   name: string;
   type: string;
