@@ -8,14 +8,62 @@
 
 ## ⚠️ CURRENT BUILD FOCUS (July 2026)
 
-**We are building Sinapse XD ONLY — the standalone intelligence layer, as a big-data dashboard product.**
+**North star:** Sinapse is an **ontology-driven, federated Decision Intelligence Platform** (see *Master Build Plan v2* → §0 below). It turns operational, commercial, financial, trade, infrastructure and governance data into trusted, explainable evidence for decision-making — for operators, governments, DFIs, and continental institutions.
 
+**What we build now:** the **foundation layers** of that platform, delivered as the standalone Sinapse XD intelligence product.
+
+- Build order follows the v2 layer stack bottom-up: **Lakehouse → Ontology → Data Products → Evidence → Experience**. The near-term deliverable is the external-pillar lakehouse + ontology core, surfaced through the role-based dashboards already in `apps/web`.
 - Sinapse XD must function **fully independently of Sinapse CRM**. No feature may depend on CRM data being present.
-- The platform is driven by the **6 external data pillars** (AIS/vessels, trade analytics, market intel, weather, financial data, SDG reporting), delivered as **role-based dashboards** for ports, governments, DFIs, and AfCFTA/APRM institutions.
-- Sinapse CRM is a **future, optional 7th data source**. The CRM ingestion path (`crm_ingestor.py`, `crm.port.events` queue, CRM screens under `/crm`) is **out of scope** for now — keep the ingestion architecture pluggable so CRM can slot in later, but do not build it.
+- Driven by the **6 external data pillars** (AIS/vessels, trade analytics, market intel, weather, financial data, SDG reporting). IMF PortWatch (open) is the primary port-activity source; AISHub is a dev-only AIS feed.
+- **Deferred — do not build yet:** Sinapse CRM (`crm_ingestor.py`, `crm.port.events`, `/crm`); the additional v2 data products (Customs, ERP, Payments, IoT, Geospatial beyond ports); and v2 Phases 5–7 (AI recommend/forecast/simulate, full applications, digital twins). Keep every layer pluggable so these slot in later.
 - When CRM data is absent (the default), dashboards render entirely from external pillar data — no empty states caused by missing CRM feeds.
 
-Everything below describes the full long-term platform. Where it conflicts with this focus statement, this focus statement wins.
+Where anything below conflicts with this focus statement, this focus statement wins.
+
+---
+
+## 0. Decision Intelligence Architecture (Master Build Plan v2)
+
+Sinapse is **ontology-first, not database-first**. The governing architecture is a layered, federated, lakehouse-backed decision platform.
+
+### 0.1 Seven design principles (non-negotiable, alongside §12)
+
+1. **Ontology-first, not database-first** — data resolves to canonical objects (Country, Port, Corridor, Commodity…), not ad-hoc tables.
+2. **Federated data ownership** — raw data stays with its owner; only aggregated/anonymised intelligence flows to the central layer (see §12.3).
+3. **Lakehouse architecture** — Bronze → Silver → Gold (see §0.3).
+4. **Every metric carries lineage, confidence and explainability** — no bare numbers; each value is an evidence envelope.
+5. **Every dashboard is an operational application** that supports a specific business decision, not just a report.
+6. **AI recommends, predicts and simulates** — not merely reports (deferred to v2 Phase 5).
+7. **Every insight is traceable** back to trusted evidence.
+
+### 0.2 Layer stack (top → bottom)
+
+```
+Experience         Executive · Port Ops · Commercial · Government · DFI · AfCFTA · APRM · AU · AI Copilot
+Decision Intel     Recommendation · Forecasting · Simulation · Risk Scoring · Evidence Engine   [Phase 4–5]
+Ontology           Countries · Ports · Corridors · Border Posts · Airports · Rail · Roads ·
+                   Commodities · Shipping Lines · Customers · Projects · DFIs · Policies ·
+                   SDGs · Agenda 2063 · APRM
+Data Products      CRM* · AIS · Weather · Trade · Customs* · Finance · ERP* · Payments* · Geospatial · IoT*
+Lakehouse          Bronze (raw) · Silver (conformed) · Gold (marts)
+                                                         (* = deferred data products)
+```
+
+### 0.3 Lakehouse zones — how they map to the approved stack
+
+Constraint §12.7 forbids AWS/GCP/Azure. Supabase Storage is S3-compatible, so the lake lives there; DuckDB is the vendor-neutral transform/query engine.
+
+| Zone | Contents | Where | Standards |
+|------|----------|-------|-----------|
+| **Bronze** | Immutable raw fetches, exactly as received | Supabase Storage, **Parquet**, partitioned `pillar/source/date=YYYY-MM-DD/` | schema-on-read, immutable, replayable, lineage record per object |
+| **Silver** | Cleaned, deduplicated, **ontology-keyed** records | Supabase Postgres (§7 tables, partitioned) | schema-on-write, idempotent upsert, data contracts (`packages/shared`) |
+| **Gold** | Pre-aggregated, cross-referenced decision marts | Postgres materialized views / aggregate tables | star schema, one source of truth per KPI |
+
+Ingestor `fetch()` → Bronze landing; `normalise()` → Silver transform; Gold marts feed the dashboards. Cross-referencing across pillars happens through **ontology object keys** (canonical `port_id`, ISO3 `country`, `date`, vessel `mmsi`, `corridor_id`, `commodity`), never ad-hoc joins.
+
+### 0.4 Evidence envelope
+
+Every Silver/Gold value is wrapped as `{ value, source, asOf, confidence, lineageRef }` — extending the `PillarFeed` freshness model (`live|loading|stale|down`) already in `packages/shared`. This is the seed of the v2 Phase-4 Evidence Engine.
 
 ---
 

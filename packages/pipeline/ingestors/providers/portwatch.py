@@ -24,6 +24,8 @@ import os
 
 import httpx
 
+from ontology import resolve_port
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_URL = (
@@ -112,11 +114,20 @@ class PortWatchProvider:
                 for field, cls in _CLASS_FIELDS.items()
             }
 
+        iso3 = str(raw.get("ISO3", "")).strip()
+        port_name = str(raw.get("portname", "")).strip()
+        native_port = str(raw.get("portid", "")).strip()
+        canonical_port = resolve_port(
+            "portwatch", native_id=native_port, name=port_name, iso3=iso3
+        )
         return {
-            "portId": str(raw.get("portid", "")).strip(),
-            "portName": str(raw.get("portname", "")).strip(),
+            "portId": native_port,
+            # Canonical ontology key; None when the port isn't yet in the
+            # registry (logged upstream so the crosswalk can be extended).
+            "canonicalPortId": canonical_port,
+            "portName": port_name,
             "country": str(raw.get("country", "")).strip(),
-            "iso3": str(raw.get("ISO3", "")).strip(),
+            "iso3": iso3,
             "dateIso": _date_iso(raw),
             "portCalls": _num(raw.get("portcalls")),
             "portCallsByClass": by_class("portcalls"),
