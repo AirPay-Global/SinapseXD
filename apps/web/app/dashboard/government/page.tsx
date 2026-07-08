@@ -5,7 +5,8 @@
 import { PageHeader } from "@/components/app-shell";
 import { RankedBars, TrendLines } from "@/components/charts/charts";
 import { InsightPanel } from "@/components/intelligence/insight-panel";
-import { ChartCard, StatCard } from "@/components/ui/stat-card";
+import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
+import { liveFeed } from "@/lib/feed";
 import { FREIGHT_ROUTES, corridorFlows, freightRates90d } from "@/lib/demo-data";
 
 const nf = new Intl.NumberFormat("en-US");
@@ -15,6 +16,9 @@ const usd = (v: number) =>
 export default function GovernmentDashboard() {
   const flows = corridorFlows().sort((a, b) => b.throughputTeu - a.throughputTeu);
   const totalValue = flows.reduce((s, f) => s + f.tradeValueUsd, 0);
+  const avgTransit = (flows.reduce((s, f) => s + f.avgTransitDays, 0) / flows.length).toFixed(1);
+  const tradeFeed = liveFeed();
+  const marketFeed = liveFeed();
 
   // Pivot freight rates: one row per date, one column per route
   const rates = freightRates90d();
@@ -33,24 +37,31 @@ export default function GovernmentDashboard() {
         subtitle="Corridor performance, trade costs, and AfCFTA compliance signals"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Monitored corridors" value={String(flows.length)} subtitle="7 pilot corridors, June 2026" />
-        <StatCard
-          label="Corridor trade value"
-          value={usd(totalValue)}
-          delta={{ text: "6.1% YoY", direction: "up", positive: true }}
-        />
-        <StatCard
-          label="Avg transit time"
-          value={`${(flows.reduce((s, f) => s + f.avgTransitDays, 0) / flows.length).toFixed(1)} days`}
+      {/* Hero: corridor transit time is the policy lever — the number
+          governments act on. Supporting KPIs sit beside it. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HeroStat
+          label="Avg corridor transit"
+          value={avgTransit}
+          unit="days"
           delta={{ text: "0.9 days YoY", direction: "down", positive: true }}
+          context={`${flows.length} pilot corridors · June 2026`}
+          feed={tradeFeed}
         />
-        <StatCard
-          label="Trade cost index (SDG 10)"
-          value="82.4"
-          subtitle="2019 = 100 · lower is better"
-          delta={{ text: "3.2 pts YoY", direction: "down", positive: true }}
-        />
+        <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
+          <StatCard label="Monitored corridors" value={String(flows.length)} subtitle="7 pilot corridors, June 2026" />
+          <StatCard
+            label="Corridor trade value"
+            value={usd(totalValue)}
+            delta={{ text: "6.1% YoY", direction: "up", positive: true }}
+          />
+          <StatCard
+            label="Trade cost index (SDG 10)"
+            value="82.4"
+            subtitle="2019 = 100 · lower is better"
+            delta={{ text: "3.2 pts YoY", direction: "down", positive: true }}
+          />
+        </div>
       </div>
 
       <div className="mt-6">
@@ -58,7 +69,7 @@ export default function GovernmentDashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        <ChartCard title="Corridor throughput" subtitle="TEU, June 2026" pillar="Trade Analytics">
+        <ChartCard title="Corridor throughput" subtitle="TEU, June 2026" pillar="Trade Analytics" feed={tradeFeed}>
           <RankedBars
             data={flows}
             nameKey="corridor"
@@ -69,7 +80,7 @@ export default function GovernmentDashboard() {
           />
         </ChartCard>
 
-        <ChartCard title="Container freight rates" subtitle="USD per FEU, last 90 days (FBX)" pillar="Market Intel">
+        <ChartCard title="Container freight rates" subtitle="USD per FEU, last 90 days (FBX)" pillar="Market Intel" feed={marketFeed}>
           <TrendLines
             data={rateRows}
             xKey="date"
@@ -81,7 +92,7 @@ export default function GovernmentDashboard() {
       </div>
 
       <div className="mt-4">
-        <ChartCard title="Corridor scorecard" subtitle="Throughput, value, and transit time by corridor" pillar="Trade Analytics">
+        <ChartCard title="Corridor scorecard" subtitle="Throughput, value, and transit time by corridor" pillar="Trade Analytics" feed={tradeFeed}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

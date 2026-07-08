@@ -5,7 +5,8 @@
 import { PageHeader } from "@/components/app-shell";
 import { GroupedBars, RankedBars } from "@/components/charts/charts";
 import { InsightPanel } from "@/components/intelligence/insight-panel";
-import { ChartCard, StatCard } from "@/components/ui/stat-card";
+import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
+import { liveFeed } from "@/lib/feed";
 import { corridorFlows } from "@/lib/demo-data";
 
 const nf = new Intl.NumberFormat("en-US");
@@ -21,6 +22,7 @@ const REC_TRADE = [
 
 export default function AfcftaDashboard() {
   const flows = corridorFlows().sort((a, b) => b.tradeValueUsd - a.tradeValueUsd);
+  const tradeFeed = liveFeed();
 
   return (
     <>
@@ -29,24 +31,30 @@ export default function AfcftaDashboard() {
         subtitle="Continental flows, Digital Trade Protocol compliance, and inclusion metrics"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
+      {/* Hero: intra-African trade share is the AfCFTA headline — the
+          treaty's success metric. Supporting KPIs sit beside it. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HeroStat
           label="Intra-African trade share"
-          value="16.8%"
+          value="16.8"
+          unit="%"
           delta={{ text: "1.3 pts YoY", direction: "up", positive: true }}
-          subtitle="of total African trade"
+          context="of total African trade · AfCFTA target 25% by 2030"
+          feed={tradeFeed}
         />
-        <StatCard label="States trading under AfCFTA" value="47 / 55" subtitle="Guided Trade Initiative + full" />
-        <StatCard
-          label="Digital Trade Protocol"
-          value="31"
-          subtitle="member states with aligned data standards"
-        />
-        <StatCard
-          label="Landlocked corridor volume"
-          value="+9.4%"
-          subtitle="YoY, corridors serving landlocked economies"
-        />
+        <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
+          <StatCard label="States trading under AfCFTA" value="47 / 55" subtitle="Guided Trade Initiative + full" />
+          <StatCard
+            label="Digital Trade Protocol"
+            value="31"
+            subtitle="member states with aligned data standards"
+          />
+          <StatCard
+            label="Landlocked corridor volume"
+            value="+9.4%"
+            subtitle="YoY, corridors serving landlocked economies"
+          />
+        </div>
       </div>
 
       <div className="mt-6">
@@ -54,7 +62,7 @@ export default function AfcftaDashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
-        <ChartCard title="Intra-REC trade share" subtitle="% of REC trade that is intra-African, 2024 vs 2025" pillar="Trade Analytics">
+        <ChartCard title="Intra-REC trade share" subtitle="% of REC trade that is intra-African, 2024 vs 2025" pillar="Trade Analytics" feed={tradeFeed}>
           <GroupedBars
             data={REC_TRADE}
             xKey="rec"
@@ -67,7 +75,7 @@ export default function AfcftaDashboard() {
           />
         </ChartCard>
 
-        <ChartCard title="Corridor trade value" subtitle="USD, June 2026" pillar="Trade Analytics">
+        <ChartCard title="Corridor trade value" subtitle="USD, June 2026" pillar="Trade Analytics" feed={tradeFeed}>
           <RankedBars
             data={flows.map((f) => ({ ...f, valueBn: Math.round(f.tradeValueUsd / 1e7) / 100 }))}
             nameKey="corridor"
