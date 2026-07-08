@@ -13,6 +13,18 @@ export type DataPillar =
   | "financial"
   | "sdg";
 
+// ── Feed freshness ──────────────────────────────────────
+// Every pillar-backed surface reports one of these so a late or failed
+// ingestion never renders as a real zero. Dashboards and the pipeline
+// share this vocabulary.
+export type FeedStatus = "live" | "loading" | "stale" | "down";
+
+export interface PillarFeed {
+  status: FeedStatus;
+  /** ISO timestamp of the most recent successful ingestion, or null when never delivered. */
+  asOf: string | null;
+}
+
 // ── Pillar 1: AIS & Vessels ─────────────────────────────
 export type VesselStatus =
   | "underway"

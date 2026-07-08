@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/app-shell";
 import { StackedBars, TrendLines } from "@/components/charts/charts";
 import { InsightPanel } from "@/components/intelligence/insight-panel";
 import { VesselMap } from "@/components/maps/vessel-map";
-import { ChartCard, StatCard } from "@/components/ui/stat-card";
+import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
+import { liveFeed } from "@/lib/feed";
 import {
   COMMODITIES,
   PORTS,
@@ -24,6 +25,8 @@ export default function PortDashboard() {
   const kpis = portKpis(port.id);
   const queue = vesselQueue(port.id).slice(0, 8);
   const conditions = marineConditions().find((c) => c.portId === port.id)!;
+  const aisFeed = liveFeed();
+  const tradeFeed = liveFeed();
 
   return (
     <>
@@ -32,23 +35,34 @@ export default function PortDashboard() {
         subtitle="Live intelligence from AIS, weather, and trade pillars"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Port calls (30 days)"
-          value={nf.format(kpis.portCalls30d)}
-          delta={{ text: "4.2% vs prior 30d", direction: "up", positive: true }}
-        />
-        <StatCard label="Vessels inbound" value={String(kpis.vesselsInbound)} subtitle="Next arrival in 2h" />
-        <StatCard
+      {/* Hero: the operational headline — anchorage pressure — leads the view,
+          supporting KPIs sit at a lower weight beside it. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HeroStat
           label="Avg anchorage wait"
-          value={`${kpis.avgWaitHours}h`}
+          value={String(kpis.avgWaitHours)}
+          unit="hours"
           delta={{ text: "1.8h vs prior 30d", direction: "down", positive: true }}
+          context={`${kpis.vesselsInbound} vessels inbound · next arrival in 2h`}
+          feed={aisFeed}
         />
-        <StatCard
-          label="Throughput (30 days)"
-          value={`${nf.format(kpis.throughputTeu30d)} TEU`}
-          delta={{ text: "2.9% vs prior 30d", direction: "up", positive: true }}
-        />
+        <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
+          <StatCard
+            label="Port calls (30 days)"
+            value={nf.format(kpis.portCalls30d)}
+            delta={{ text: "4.2% vs prior 30d", direction: "up", positive: true }}
+          />
+          <StatCard
+            label="Vessels inbound"
+            value={String(kpis.vesselsInbound)}
+            subtitle="Next arrival in 2h"
+          />
+          <StatCard
+            label="Throughput (30 days)"
+            value={`${nf.format(kpis.throughputTeu30d)} TEU`}
+            delta={{ text: "2.9% vs prior 30d", direction: "up", positive: true }}
+          />
+        </div>
       </div>
 
       <div className="mt-6">
@@ -60,11 +74,12 @@ export default function PortDashboard() {
           title="Live vessel picture"
           subtitle={`AIS positions within ±5° of ${port.name} · wave ${conditions.waveHeightM} m · wind ${conditions.windSpeedKn} kn`}
           pillar="AIS & Vessels"
+          feed={aisFeed}
         >
           <VesselMap vessels={vesselQueue(port.id)} center={port} />
         </ChartCard>
 
-        <ChartCard title="Incoming vessel queue" subtitle="Next 8 arrivals by ETA" pillar="AIS & Vessels">
+        <ChartCard title="Incoming vessel queue" subtitle="Next 8 arrivals by ETA" pillar="AIS & Vessels" feed={aisFeed}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -103,7 +118,7 @@ export default function PortDashboard() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
-        <ChartCard title="Port calls — arrivals vs departures" subtitle="Daily, last 30 days" pillar="AIS & Vessels">
+        <ChartCard title="Port calls — arrivals vs departures" subtitle="Daily, last 30 days" pillar="AIS & Vessels" feed={aisFeed}>
           <TrendLines
             data={portCalls30d(port.id)}
             xKey="date"
@@ -114,7 +129,7 @@ export default function PortDashboard() {
           />
         </ChartCard>
 
-        <ChartCard title="Cargo throughput by commodity" subtitle="Monthly, thousand tonnes" pillar="Trade Analytics">
+        <ChartCard title="Cargo throughput by commodity" subtitle="Monthly, thousand tonnes" pillar="Trade Analytics" feed={tradeFeed}>
           <StackedBars
             data={throughputByCommodity(port.id)}
             xKey="month"
