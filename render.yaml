@@ -32,6 +32,17 @@ services:
     envVarGroups:
       - sinapse-xd-env
 
+  # ── Port activity (IMF PortWatch) — daily cron ──────────
+  - type: cron
+    name: sinapse-cron-port-activity
+    runtime: python
+    schedule: "30 6 * * *"
+    buildCommand: pip install -r packages/pipeline/requirements.txt
+    startCommand: python -m ingestors.port_activity_ingestor
+    rootDir: packages/pipeline
+    envVarGroups:
+      - sinapse-xd-env
+
   # ── Weather ingestor — hourly cron ──────────────────────
   - type: cron
     name: sinapse-cron-weather

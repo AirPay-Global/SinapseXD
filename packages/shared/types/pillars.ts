@@ -60,6 +60,28 @@ export interface CorridorFlow {
   periodIso: string;
 }
 
+// Daily port activity — IMF PortWatch (open, global, AIS-derived).
+// Powers the Port dashboard's port-call and throughput cards without any
+// vendor key. Port-level daily counts and trade-volume estimates.
+export type VesselClass = "container" | "dryBulk" | "generalCargo" | "roro" | "tanker";
+
+export interface PortActivityDaily {
+  portId: string;
+  portName: string;
+  country: string;
+  iso3: string;
+  /** UTC calendar day, YYYY-MM-DD. */
+  dateIso: string;
+  portCalls: number;
+  portCallsByClass: Record<VesselClass, number>;
+  /** Trade-volume estimate (metric tons). */
+  importTons: number;
+  importByClass: Record<VesselClass, number>;
+  exportTons: number;
+  exportByClass: Record<VesselClass, number>;
+  source: "portwatch";
+}
+
 // ── Pillar 3: Market Intel ──────────────────────────────
 export interface FreightRatePoint {
   route: string;
