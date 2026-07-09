@@ -6,7 +6,7 @@ import { GroupedBars, RankedBars } from "@/components/charts/charts";
 import { InsightPanel } from "@/components/intelligence/insight-panel";
 import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
 import { demoFeed } from "@/lib/feed";
-import type { CorridorGateway } from "@/lib/gold";
+import type { CorridorGateway } from "@/lib/ontology/types";
 import { corridorFlows } from "@/lib/demo-data";
 
 const nf = new Intl.NumberFormat("en-US");

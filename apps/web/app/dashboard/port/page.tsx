@@ -1,16 +1,18 @@
 import { demoFeed } from "@/lib/feed";
-import { getPortActivity30d, getPortThroughputMonthly, pivotThroughput } from "@/lib/gold";
+import { createOntology } from "@/lib/ontology/sdk";
+import { pivotThroughput } from "@/lib/ontology/types";
 import { COMMODITIES, PORTS, portKpis, throughputByCommodity } from "@/lib/demo-data";
 import { PortView } from "./port-view";
 
 export default async function PortDashboard() {
   const port = PORTS[0]; // Durban — port selector wires in with auth/orgs
+  const onto = await createOntology();
 
   // Live PortWatch-backed surfaces — fall back to demo when the mart is empty
   // (DB not provisioned / PORTWATCH_ENABLED off / no auth session).
   const [activity, throughput] = await Promise.all([
-    getPortActivity30d(port.id),
-    getPortThroughputMonthly(port.id),
+    onto.ports.activity30d(port.id),
+    onto.ports.throughputMonthly(port.id),
   ]);
 
   const portCallsLive = activity.data !== null;
