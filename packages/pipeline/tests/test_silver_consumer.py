@@ -59,6 +59,8 @@ def db():
     _psql(file=MIGRATIONS / "0002_ontology_core.sql")
     _psql(file=MIGRATIONS / "0003_silver_port_activity.sql")
     _psql(file=MIGRATIONS / "0007_ais_vessel_positions.sql")
+    _psql(file=MIGRATIONS / "0008_silver_trade_flows.sql")
+    _psql(file=MIGRATIONS / "0009_marine_conditions_ontology.sql")
     conn = psycopg.connect(DSN)
     yield conn
     conn.close()
@@ -194,3 +196,85 @@ def test_ais_position_without_mmsi_is_dropped_not_errored(db):
     consumer = SilverConsumer(redis_client, db, queues=[queue])
     # Handler runs (no exception) but inserts nothing — commit still happens.
     assert consumer.drain_once() == 1
+
+
+def test_trade_flow_lands_ontology_keyed_and_feeds_corridor_mart(db):
+    import fakeredis
+
+    from consumers import SilverConsumer
+    from ingestors.providers.comtrade import ComtradeProvider
+
+    redis_client = fakeredis.FakeStrictRedis()
+    queue = "trade.corridor.flows"
+
+    raw_export = {
+        "reporterISO": "zaf", "partnerISO": "zmb", "flowCode": "X", "cmdCode": "TOTAL",
+        "period": "2025", "primaryValue": 1_200_000_000, "netWgt": 50_000_000,
+    }
+    raw_import = {
+        "reporterISO": "zaf", "partnerISO": "zmb", "flowCode": "M", "cmdCode": "TOTAL",
+        "period": "2025", "primaryValue": 300_000_000, "netWgt": 10_000_000,
+    }
+    for raw in (raw_export, raw_import):
+        _enqueue(redis_client, queue, ComtradeProvider.normalise(raw))
+
+    consumer = SilverConsumer(redis_client, db, queues=[queue])
+    assert consumer.drain_once() == 2
+
+    with db.cursor() as cur:
+        cur.execute(
+            "select trade_value_usd from trade_flows "
+            "where reporter_iso3 = 'ZAF' and partner_iso3 = 'ZMB' and flow_code = 'X'"
+        )
+        assert float(cur.fetchone()[0]) == 1_200_000_000.0
+
+    with db.cursor() as cur:
+        cur.execute(
+            "select trade_value_usd_latest from gold_corridor_trade_flows "
+            "where corridor_id = 'durban-lusaka'"
+        )
+        total = cur.fetchone()[0]
+    assert float(total) == 1_500_000_000.0  # export + import, same latest period
+
+    # Idempotency: re-processing the export leg upserts, not duplicates.
+    _enqueue(redis_client, queue, ComtradeProvider.normalise(raw_export))
+    assert consumer.drain_once() == 1
+    with db.cursor() as cur:
+        cur.execute("select count(*) from trade_flows where reporter_iso3 = 'ZAF' and partner_iso3 = 'ZMB'")
+        assert cur.fetchone()[0] == 2  # one row per (reporter,partner,flow), not per enqueue
+
+
+def test_marine_conditions_lands_ontology_keyed_and_idempotent(db):
+    import fakeredis
+
+    from consumers import SilverConsumer
+    from ingestors.providers.open_meteo import OpenMeteoProvider
+
+    redis_client = fakeredis.FakeStrictRedis()
+    queue = "weather.marine.forecast"
+
+    raw = {
+        "port": {"id": "durban", "name": "Durban", "lat": -29.87, "lng": 31.03},
+        "marine": {"current": {"wave_height": 3.1, "wind_wave_height": 1.2}},
+        "forecast": {"current_weather": {"windspeed": 40.0, "time": "2026-07-09T12:00"}},
+    }
+    record = OpenMeteoProvider.normalise(raw)
+    _enqueue(redis_client, queue, record)
+
+    consumer = SilverConsumer(redis_client, db, queues=[queue])
+    assert consumer.drain_once() == 1
+
+    with db.cursor() as cur:
+        cur.execute(
+            "select wave_height_m, disruption_risk from marine_conditions "
+            "where ont_port_id = 'durban' and ts = '2026-07-09T12:00'"
+        )
+        wave, risk = cur.fetchone()
+    assert float(wave) == 3.1
+    assert risk == "elevated"  # wave >= 2.5m threshold
+
+    _enqueue(redis_client, queue, record)
+    assert consumer.drain_once() == 1
+    with db.cursor() as cur:
+        cur.execute("select count(*) from marine_conditions where ont_port_id = 'durban'")
+        assert cur.fetchone()[0] == 1

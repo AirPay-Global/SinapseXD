@@ -27,13 +27,20 @@ export interface PortViewProps {
     isLive: boolean;
     feed: PillarFeed;
   };
+  conditions: {
+    data: import("@/lib/ontology/types").MarineConditions | null;
+    isLive: boolean;
+    feed: PillarFeed;
+  };
 }
 
-export function PortView({ portCallsValue, portCallsLive, portCallsFeed, throughput, vessels }: PortViewProps) {
+export function PortView({ portCallsValue, portCallsLive, portCallsFeed, throughput, vessels, conditions }: PortViewProps) {
   const port = PORTS[0]; // Durban — port selector wires in with auth/orgs
   const kpis = portKpis(port.id);
   const queue = (vessels.data.length ? vessels.data : vesselQueue(port.id)).slice(0, 8);
-  const conditions = marineConditions().find((c) => c.portId === port.id)!;
+  const demoConditions = marineConditions().find((c) => c.portId === port.id)!;
+  const waveHeightM = conditions.isLive ? conditions.data!.wave_height_m : demoConditions.waveHeightM;
+  const windSpeedKn = conditions.isLive ? conditions.data!.wind_speed_kn : demoConditions.windSpeedKn;
 
   // Port calls / throughput can be live via PortWatch marts; the anchorage
   // KPI is still a demo estimate until a congestion mart is built.
@@ -87,7 +94,7 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
         <ChartCard
           title="Live vessel picture"
-          subtitle={`AIS positions within ±5° of ${port.name} · wave ${conditions.waveHeightM} m · wind ${conditions.windSpeedKn} kn`}
+          subtitle={`AIS positions within ±5° of ${port.name} · wave ${waveHeightM} m · wind ${windSpeedKn} kn${conditions.isLive ? " · live" : ""}`}
           pillar="AIS & Vessels"
           feed={vessels.feed}
         >

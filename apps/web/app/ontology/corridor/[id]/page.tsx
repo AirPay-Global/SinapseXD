@@ -23,14 +23,19 @@ export default async function CorridorProfile({ params }: { params: { id: string
 
   const onto = await createOntology();
   const corridor = await onto.corridors.get(id);
-  const gateway = await onto.corridors.gatewayActivity();
+  const [gateway, tradeFlows] = await Promise.all([onto.corridors.gatewayActivity(), onto.corridors.tradeFlows()]);
   const row = gateway.data.find((g) => g.corridor_id === id);
+  const trade = tradeFlows.data.find((t) => t.corridor_id === id);
   const live = row !== undefined;
+  const tradeLive = trade !== undefined;
   const objectRef = `object · corridor:${id}`;
   const status: ProfileData["status"] = live ? "live" : "demo";
 
   const callsValue = live ? row!.port_calls_30d.toLocaleString("en-US") : "20";
   const tonsValue = live ? Math.round(row!.throughput_tons_30d).toLocaleString("en-US") : "280";
+  const tradeValueUsd = tradeLive
+    ? `$${(trade!.trade_value_usd_latest / 1_000_000).toFixed(1)}M`
+    : "$1.5B";
 
   const data: ProfileData = {
     name: corridor?.name ?? demo.name,
@@ -73,6 +78,16 @@ export default async function CorridorProfile({ params }: { params: { id: string
             { zone: "gold", title: "Corridor gateway activity", locator: "gold_corridor_gateway_activity", detail: "Import+export tons at the gateway, attributed to this corridor. Honestly scoped as gateway throughput, not end-to-end corridor flow.", sources: live ? ["live mart"] : ["demo"] },
           ],
           recommendation: "This is gateway-port throughput, not verified end-to-end corridor flow — a port serves multiple corridors." },
+      },
+      {
+        name: "Bilateral trade value (latest year)", value: tradeValueUsd, tone: "plain",
+        evidence: { metric: "Bilateral trade value", value: tradeValueUsd, objectRef, asOf: ASOF, confidence: tradeLive ? 0.8 : 0.35, status: tradeLive ? "live" : "demo",
+          lineage: [
+            { zone: "bronze", title: "UN Comtrade feed", locator: "pillar/comtrade", detail: "Reported export + import value between the corridor's two countries.", sources: ["comtrade"] },
+            { zone: "silver", title: "Normalise & ontology-key", locator: "trade_flows", detail: "Resolved to canonical ISO3 country pair.", sources: ["ontology-keyed"] },
+            { zone: "gold", title: "Corridor trade flows", locator: "gold_corridor_trade_flows", detail: "Sum of latest-year export + import value for the corridor's country pair. Country-to-country trade value, not verified physical corridor volume.", sources: tradeLive ? ["live mart"] : ["demo"] },
+          ],
+          recommendation: "Official UN statistics lag ~1 year — treat as an annual economic-weight indicator, not a real-time signal." },
       },
     ],
     timeline: [

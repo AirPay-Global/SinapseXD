@@ -10,10 +10,11 @@ export default async function PortDashboard() {
 
   // Live PortWatch-backed surfaces — fall back to demo when the mart is empty
   // (DB not provisioned / PORTWATCH_ENABLED off / no auth session).
-  const [activity, throughput, vessels] = await Promise.all([
+  const [activity, throughput, vessels, conditions] = await Promise.all([
     onto.ports.activity30d(port.id),
     onto.ports.throughputMonthly(port.id),
     onto.ports.vesselsNear(port.id),
+    onto.ports.conditions(port.id),
   ]);
 
   const portCallsLive = activity.data !== null;
@@ -36,6 +37,11 @@ export default async function PortDashboard() {
         data: vessels.data.length ? vessels.data : vesselQueue(port.id),
         isLive: vessels.data.length > 0,
         feed: vessels.data.length ? vessels.feed : demoFeed(),
+      }}
+      conditions={{
+        data: conditions.data,
+        isLive: conditions.data !== null,
+        feed: conditions.data ? conditions.feed : demoFeed(),
       }}
     />
   );

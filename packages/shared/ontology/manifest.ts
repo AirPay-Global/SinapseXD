@@ -60,4 +60,5 @@ export const ONTOLOGY_MARTS = {
   portCallsDaily: "gold_port_calls_daily",
   portThroughputMonthly: "gold_port_throughput_monthly",
   corridorGatewayActivity: "gold_corridor_gateway_activity",
+  corridorTradeFlows: "gold_corridor_trade_flows",
 } as const;

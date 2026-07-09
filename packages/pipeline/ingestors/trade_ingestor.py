@@ -1,28 +1,38 @@
-"""UN Comtrade corridor trade flows (daily).
+"""UN Comtrade bilateral trade flows for AfCFTA corridor country-pairs.
 
-Pillar ingestor stub — fetch() wires to the live API once credentials are
-provisioned (see API_REGISTRATIONS.md). Queue: `trade.corridor.flows`.
+Queue: `trade.corridor.flows`. Runs as a Render daily cron (Comtrade data is
+annual/lagged, so hourly+ polling would be wasted calls) — see render.yaml.
+No key set means the worker stays idle and dashboards render from demo data
+(per the standalone-XD build focus).
 """
 from __future__ import annotations
 
 import logging
+import os
 
 from .base_ingestor import BaseIngestor
+from .providers.comtrade import ComtradeProvider
 
 logger = logging.getLogger(__name__)
 
 
 class TradeIngestor(BaseIngestor):
     queue_name = "trade.corridor.flows"
+    pillar = "trade"
+
+    def __init__(self) -> None:
+        provider = os.environ.get("TRADE_PROVIDER", "comtrade").lower()
+        if provider == "comtrade":
+            self.provider = ComtradeProvider()
+        else:
+            raise ValueError(f"Unknown TRADE_PROVIDER: {provider!r} (only 'comtrade' wired so far)")
+        self.source = provider
 
     def fetch(self) -> list[dict]:
-        # TODO: call the external API with the key from the environment
-        # (UN_COMTRADE_API_KEY).
-        logger.warning("%s: fetch() not yet wired to live API", type(self).__name__)
-        return []
+        return self.provider.fetch()
 
     def normalise(self, raw: dict) -> dict:
-        return raw
+        return self.provider.normalise(raw)
 
 
 if __name__ == "__main__":

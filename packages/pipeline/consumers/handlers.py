@@ -132,8 +132,86 @@ def handle_vessel_position(conn: Connection, rec: dict) -> None:
     )
 
 
+def handle_trade_flow(conn: Connection, rec: dict) -> None:
+    """Upsert a UN Comtrade bilateral trade-flow record.
+
+    Idempotency key: (reporter_iso3, partner_iso3, flow_code, cmd_code,
+    period, source). Rows with an unresolvable country (outside our pilot +
+    corridor-partner registry) are dropped rather than inserted with a
+    dangling FK.
+    """
+    reporter = resolve_country(rec.get("reporterIso3"))
+    partner = resolve_country(rec.get("partnerIso3"))
+    if not reporter or not partner or not rec.get("period"):
+        return
+    conn.execute(
+        """
+        insert into trade_flows (
+          reporter_iso3, partner_iso3, flow_code, cmd_code, period,
+          trade_value_usd, net_weight_kg, source, as_of, lineage_ref
+        ) values (
+          %(reporter)s, %(partner)s, %(flow_code)s, %(cmd_code)s, %(period)s,
+          %(trade_value_usd)s, %(net_weight_kg)s, %(source)s, now(), %(lineage_ref)s
+        )
+        on conflict (reporter_iso3, partner_iso3, flow_code, cmd_code, period, source) do update set
+          trade_value_usd = excluded.trade_value_usd,
+          net_weight_kg   = excluded.net_weight_kg,
+          as_of           = now(),
+          lineage_ref     = excluded.lineage_ref
+        """,
+        {
+            "reporter": reporter,
+            "partner": partner,
+            "flow_code": rec.get("flowCode", ""),
+            "cmd_code": rec.get("cmdCode", "TOTAL"),
+            "period": rec.get("period"),
+            "trade_value_usd": rec.get("tradeValueUsd", 0) or 0,
+            "net_weight_kg": rec.get("netWeightKg", 0) or 0,
+            "source": rec.get("source", "comtrade"),
+            "lineage_ref": rec.get("lineageRef"),
+        },
+    )
+
+
+def handle_marine_conditions(conn: Connection, rec: dict) -> None:
+    """Upsert an Open-Meteo marine-conditions reading.
+
+    Idempotency key: (ont_port_id, ts). Records for a port outside the
+    ont_port registry are dropped — the pilot registry is the ingestor's own
+    fixed list, so this should never happen in practice, but a bad env
+    override must not crash the consumer.
+    """
+    port_id = str(rec.get("portId") or "").strip()
+    ts = rec.get("tsIso")
+    if not port_id or not ts:
+        return
+    conn.execute(
+        """
+        insert into marine_conditions (
+          ont_port_id, ts, wave_height_m, wind_speed_kn, disruption_risk, source
+        ) values (
+          %(port_id)s, %(ts)s, %(wave_height_m)s, %(wind_speed_kn)s, %(disruption_risk)s, %(source)s
+        )
+        on conflict (ont_port_id, ts) do update set
+          wave_height_m   = excluded.wave_height_m,
+          wind_speed_kn   = excluded.wind_speed_kn,
+          disruption_risk = excluded.disruption_risk
+        """,
+        {
+            "port_id": port_id,
+            "ts": ts,
+            "wave_height_m": rec.get("waveHeightM", 0) or 0,
+            "wind_speed_kn": rec.get("windSpeedKn", 0) or 0,
+            "disruption_risk": rec.get("disruptionRisk"),
+            "source": rec.get("source", "open-meteo"),
+        },
+    )
+
+
 # queue name → handler
 HANDLERS: dict[str, Handler] = {
     "port.activity.daily": handle_port_activity,
     "ais.vessel.positions": handle_vessel_position,
+    "trade.corridor.flows": handle_trade_flow,
+    "weather.marine.forecast": handle_marine_conditions,
 }

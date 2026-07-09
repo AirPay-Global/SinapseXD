@@ -4,7 +4,7 @@ import type { Corridor, Country, PillarFeed, Port, VesselPosition, VesselStatus 
 import { ONTOLOGY, ONTOLOGY_MARTS } from "@sinapse/shared";
 import { createClient } from "@/lib/supabase/server";
 import { downFeed, liveFeed } from "@/lib/feed";
-import type { CorridorGateway, PortActivity30d, ThroughputRow } from "./types";
+import type { CorridorGateway, CorridorTradeFlow, MarineConditions, PortActivity30d, ThroughputRow } from "./types";
 
 /**
  * The Ontology SDK — typed, definition-driven object access over the ontology
@@ -170,6 +170,24 @@ export async function createOntology() {
         return { data: [], feed: downFeed() };
       }
     },
+
+    /** Latest Open-Meteo marine reading for a port. */
+    async conditions(id: string): Promise<{ data: MarineConditions | null; feed: PillarFeed }> {
+      if (!supabase) return { data: null, feed: downFeed() };
+      try {
+        const { data, error } = await supabase
+          .from("marine_conditions")
+          .select("ont_port_id, ts, wave_height_m, wind_speed_kn, disruption_risk")
+          .eq("ont_port_id", id)
+          .order("ts", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error || !data) return { data: null, feed: downFeed() };
+        return { data: data as MarineConditions, feed: liveFeed((data as MarineConditions).ts) };
+      } catch {
+        return { data: null, feed: downFeed() };
+      }
+    },
   };
 
   const corridors = {
@@ -187,6 +205,21 @@ export async function createOntology() {
           .order("throughput_tons_30d", { ascending: false });
         if (error || !data || data.length === 0) return { data: [], feed: downFeed() };
         const rows = data as CorridorGateway[];
+        return { data: rows, feed: liveFeed(rows[0].as_of) };
+      } catch {
+        return { data: [], feed: downFeed() };
+      }
+    },
+
+    async tradeFlows(): Promise<{ data: CorridorTradeFlow[]; feed: PillarFeed }> {
+      if (!supabase) return { data: [], feed: downFeed() };
+      try {
+        const { data, error } = await supabase
+          .from(ONTOLOGY_MARTS.corridorTradeFlows)
+          .select("*")
+          .order("trade_value_usd_latest", { ascending: false });
+        if (error || !data || data.length === 0) return { data: [], feed: downFeed() };
+        const rows = data as CorridorTradeFlow[];
         return { data: rows, feed: liveFeed(rows[0].as_of) };
       } catch {
         return { data: [], feed: downFeed() };

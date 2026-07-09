@@ -29,6 +29,24 @@ export interface CorridorGateway {
   as_of: string;
 }
 
+export interface CorridorTradeFlow {
+  corridor_id: string;
+  corridor_name: string;
+  gateway_country: string;
+  partner_country: string;
+  latest_period: string;
+  trade_value_usd_latest: number;
+  as_of: string;
+}
+
+export interface MarineConditions {
+  ont_port_id: string;
+  ts: string;
+  wave_height_m: number;
+  wind_speed_kn: number;
+  disruption_risk: string | null;
+}
+
 // Vessel class → label, mirroring the ont_commodity seed (migration 0002).
 export const VESSEL_CLASS_LABEL: Record<string, string> = {
   container: "Containers",
