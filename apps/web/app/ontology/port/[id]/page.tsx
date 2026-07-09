@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { createOntology } from "@/lib/ontology/sdk";
 import type { LineageStage } from "@/lib/evidence/types";
-import { ProfileView, type ProfileData } from "./profile-view";
+import { ObjectProfile, type ProfileData } from "@/components/ontology/object-profile";
 
 const ASOF = "as of 07 Jul 2026, 14:20 UTC";
+const PORT_ICON = "M3 21h18M5 21V10l7-4 7 4v11M9 21v-5h6v5M12 6V3";
 
 const portActivityLineage: LineageStage[] = [
   { zone: "bronze", title: "IMF PortWatch daily feed", locator: "pillar/port_activity", detail: "Daily port calls & trade-volume estimates, checksummed Parquet.", sources: ["portwatch", "sha256:1c74…"] },
@@ -13,14 +14,15 @@ const portActivityLineage: LineageStage[] = [
 
 // Demo fallbacks for the pilot ports so a profile always renders (Design Bible:
 // no empty states) even before the pipeline is live / when unauthenticated.
-const DEMO: Record<string, { name: string; meta: string[]; country: [string, string] }> = {
-  durban: { name: "Port of Durban", meta: ["id: port:durban", "ZAF · SADC", "UN/LOCODE ZADUR"], country: ["South Africa", "ZAF"] },
-  mombasa: { name: "Port of Mombasa", meta: ["id: port:mombasa", "KEN · EAC", "UN/LOCODE KEMBA"], country: ["Kenya", "KEN"] },
-  lagos: { name: "Port of Lagos (Apapa)", meta: ["id: port:lagos", "NGA · ECOWAS", "UN/LOCODE NGLOS"], country: ["Nigeria", "NGA"] },
-  lome: { name: "Port of Lomé", meta: ["id: port:lome", "TGO · ECOWAS", "UN/LOCODE TGLFW"], country: ["Togo", "TGO"] },
-  djibouti: { name: "Port of Djibouti", meta: ["id: port:djibouti", "DJI · COMESA", "UN/LOCODE DJJIB"], country: ["Djibouti", "DJI"] },
-  dar: { name: "Port of Dar es Salaam", meta: ["id: port:dar", "TZA · EAC", "UN/LOCODE TZDAR"], country: ["Tanzania", "TZA"] },
-  tema: { name: "Port of Tema", meta: ["id: port:tema", "GHA · ECOWAS", "UN/LOCODE GHTEM"], country: ["Ghana", "GHA"] },
+// corridorId matches the corridor whose gateway is this port (migration 0002 seed).
+const DEMO: Record<string, { name: string; meta: string[]; country: [string, string]; corridorId: string }> = {
+  durban: { name: "Port of Durban", meta: ["id: port:durban", "ZAF · SADC", "UN/LOCODE ZADUR"], country: ["South Africa", "ZAF"], corridorId: "durban-lusaka" },
+  mombasa: { name: "Port of Mombasa", meta: ["id: port:mombasa", "KEN · EAC", "UN/LOCODE KEMBA"], country: ["Kenya", "KEN"], corridorId: "mombasa-kampala" },
+  lagos: { name: "Port of Lagos (Apapa)", meta: ["id: port:lagos", "NGA · ECOWAS", "UN/LOCODE NGLOS"], country: ["Nigeria", "NGA"], corridorId: "lagos-niamey" },
+  lome: { name: "Port of Lomé", meta: ["id: port:lome", "TGO · ECOWAS", "UN/LOCODE TGLFW"], country: ["Togo", "TGO"], corridorId: "lome-ouagadougou" },
+  djibouti: { name: "Port of Djibouti", meta: ["id: port:djibouti", "DJI · COMESA", "UN/LOCODE DJJIB"], country: ["Djibouti", "DJI"], corridorId: "djibouti-addis" },
+  dar: { name: "Port of Dar es Salaam", meta: ["id: port:dar", "TZA · EAC", "UN/LOCODE TZDAR"], country: ["Tanzania", "TZA"], corridorId: "dar-kigali" },
+  tema: { name: "Port of Tema", meta: ["id: port:tema", "GHA · ECOWAS", "UN/LOCODE GHTEM"], country: ["Ghana", "GHA"], corridorId: "tema-bamako" },
 };
 
 export default async function PortProfile({ params }: { params: { id: string } }) {
@@ -42,11 +44,12 @@ export default async function PortProfile({ params }: { params: { id: string } }
     id,
     meta: demo.meta,
     status,
+    sourceLabel: "PortWatch",
     confidence: live ? 0.9 : 0.6,
     relationships: [
-      { kind: "country", label: demo.country[0], href: `/dashboard/government` },
+      { kind: "country", label: demo.country[0], href: `/ontology/country/${demo.country[1].toLowerCase()}` },
       { kind: "berths ×6", label: "Pier 1–2, Point" },
-      { kind: "corridor", label: `${port?.name ?? demo.name.replace("Port of ", "")} gateway` },
+      { kind: "corridor", label: `${port?.name ?? demo.name.replace("Port of ", "")} gateway`, href: `/ontology/corridor/${demo.corridorId}` },
       { kind: "vessels", label: "In approach" },
       { kind: "shipping lines ×12", label: "MSC, Maersk…" },
     ],
@@ -91,5 +94,5 @@ export default async function PortProfile({ params }: { params: { id: string } }
       `${demo.name} is holding strong competitiveness in the region, but anchorage wait has crept up while container arrivals run above trend. Revenue leakage on reefer tariffs is the largest correctable loss this quarter. Recommended focus: berth-window productivity before the MSC renewal.`,
   };
 
-  return <ProfileView data={data} />;
+  return <ObjectProfile data={data} objectTypeLabel="Port" iconPath={PORT_ICON} />;
 }

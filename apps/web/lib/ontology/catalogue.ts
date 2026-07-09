@@ -35,9 +35,9 @@ export const OBJECT_ICON: Record<string, string> = {
 };
 
 export const OBJECT_TYPES: ObjectType[] = [
-  { slug: "countries", name: "Countries", icon: "globe", status: "live", count: 55, goldOutput: "Country Competitiveness Index", description: "ISO3 nations with REC membership and AfCFTA status." },
+  { slug: "countries", name: "Countries", icon: "globe", status: "live", count: 55, goldOutput: "Country Competitiveness Index", description: "ISO3 nations with REC membership and AfCFTA status.", href: "/ontology/country/zaf" },
   { slug: "ports", name: "Ports", icon: "port", status: "live", count: 7, goldOutput: "Port Competitiveness Score", description: "Coastal gateways with PortWatch daily activity.", href: "/ontology/port/durban" },
-  { slug: "corridors", name: "Trade Corridors", icon: "route", status: "live", count: 7, goldOutput: "Corridor Performance Index", description: "Gateway → inland-hub freight routes." },
+  { slug: "corridors", name: "Trade Corridors", icon: "route", status: "live", count: 7, goldOutput: "Corridor Performance Index", description: "Gateway → inland-hub freight routes.", href: "/ontology/corridor/durban-lusaka" },
   { slug: "commodities", name: "Commodities", icon: "box", status: "demo", count: 5, goldOutput: "Import Substitution Index", description: "Vessel-class & HS commodity taxonomy." },
   { slug: "recs", name: "Regions / RECs", icon: "globe", status: "demo", count: 5, goldOutput: "Regional Integration Index", description: "SADC, ECOWAS, EAC, COMESA, ECCAS." },
   { slug: "shipping-lines", name: "Shipping Lines", icon: "ship", status: "demo", count: 12, goldOutput: "Reliability Score", description: "Carriers calling the pilot ports." },

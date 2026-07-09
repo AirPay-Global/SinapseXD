@@ -4,6 +4,14 @@ import Link from "next/link";
 import { useEvidence } from "@/components/evidence/evidence-drawer";
 import type { EvidenceRecord } from "@/lib/evidence/types";
 
+/**
+ * Generic Object Profile (Design Bible §7) — reused across every ontology
+ * object type (Port, Country, Corridor, …) so there is one profile standard,
+ * not a bespoke layout per type. Callers supply the icon + type label; the
+ * shape of the page (header, relationships, AI summary, intelligence outputs,
+ * timeline) never changes.
+ */
+
 export interface Relationship { kind: string; label: string; href?: string }
 export interface Metric { name: string; value: string; tone?: "ok" | "warn" | "plain"; evidence: EvidenceRecord }
 export interface ProfileData {
@@ -11,6 +19,8 @@ export interface ProfileData {
   id: string;
   meta: string[];
   status: "live" | "demo" | "planned";
+  /** Shown in the status pill, e.g. "PortWatch", "Ontology", "AIS". */
+  sourceLabel: string;
   confidence: number;
   relationships: Relationship[];
   metrics: Metric[];
@@ -35,7 +45,17 @@ const TONE: Record<string, string> = { ok: "text-success", warn: "text-warning",
 const STATUS_TEXT: Record<string, string> = { live: "text-success", demo: "text-warning", planned: "text-muted-foreground" };
 const STATUS_VAR: Record<string, string> = { live: "var(--success)", demo: "var(--warning)", planned: "var(--muted-foreground)" };
 
-export function ProfileView({ data }: { data: ProfileData }) {
+export function ObjectProfile({
+  data,
+  objectTypeLabel,
+  iconPath,
+}: {
+  data: ProfileData;
+  /** e.g. "Port", "Country", "Trade Corridor" — shown as "Ontology object · X". */
+  objectTypeLabel: string;
+  /** SVG path `d` for the header icon. */
+  iconPath: string;
+}) {
   const open = useEvidence();
   return (
     <>
@@ -46,10 +66,10 @@ export function ProfileView({ data }: { data: ProfileData }) {
 
       <header className="mb-5 flex items-start gap-4 rounded-xl border border-border bg-card p-5">
         <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-brand-blue to-brand-navy text-white">
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="#fff" strokeWidth="1.7"><path d="M3 21h18M5 21V10l7-4 7 4v11M9 21v-5h6v5M12 6V3" /></svg>
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="#fff" strokeWidth="1.7"><path d={iconPath} /></svg>
         </span>
         <div className="min-w-0">
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Ontology object · Port</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Ontology object · {objectTypeLabel}</p>
           <h1 className="font-heading text-[23px] font-bold text-foreground">{data.name}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {data.meta.map((m) => (
@@ -59,7 +79,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
               className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${STATUS_TEXT[data.status]}`}
               style={{ background: `color-mix(in srgb, ${STATUS_VAR[data.status]} 15%, transparent)` }}
             >
-              {data.status} · PortWatch
+              {data.status} · {data.sourceLabel}
             </span>
           </div>
         </div>
@@ -74,6 +94,9 @@ export function ProfileView({ data }: { data: ProfileData }) {
           <section className="rounded-xl border border-border bg-card p-4">
             <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Relationships</p>
             <div className="flex flex-wrap gap-2">
+              {data.relationships.length === 0 && (
+                <p className="text-[12px] text-muted-foreground">No linked objects yet.</p>
+              )}
               {data.relationships.map((r) => {
                 const chip = (
                   <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5 text-[12px] text-card-foreground">
@@ -81,7 +104,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
                     <b className="font-semibold">{r.label}</b>
                   </span>
                 );
-                return r.href ? <Link key={r.kind} href={r.href} className="hover:opacity-80">{chip}</Link> : <span key={r.kind}>{chip}</span>;
+                return r.href ? <Link key={r.kind + r.label} href={r.href} className="hover:opacity-80">{chip}</Link> : <span key={r.kind + r.label}>{chip}</span>;
               })}
             </div>
           </section>
