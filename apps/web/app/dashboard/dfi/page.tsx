@@ -7,6 +7,7 @@ import { TargetBars, TrendLines } from "@/components/charts/charts";
 import { InsightPanel } from "@/components/intelligence/insight-panel";
 import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
 import { demoFeed } from "@/lib/feed";
+import { quickEvidence } from "@/lib/evidence/build";
 import { revenueVsForecast, sdgIndicators } from "@/lib/demo-data";
 
 const usd = (v: number) => `$${(v / 1e6).toFixed(1)}M`;
@@ -34,18 +35,23 @@ export default function DfiDashboard() {
           delta={{ text: "2 more than last quarter", direction: "up", positive: true }}
           context="≥60% of 2030 target · goals 8 / 9 / 10 / 17"
           feed={sdgFeed}
+          evidence={quickEvidence({ metric: "SDG indicators on track", value: `${onTrack} / ${sdg.length}`, objectRef: "object · SDG basket (8/9/10/17)", confidence: 0.6, status: "demo", pillar: "SDG Reporting", source: "un-sdg", gold: "gold_sdg_progress*", recommendation: "Direct blended finance to the freight-volume (SDG 9.1.2) gap — the largest correctable lag." })}
         />
         <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
           <StatCard
             label="Port revenue (FY to date)"
             value="$46.2M"
             delta={{ text: "3.4% vs forecast", direction: "up", positive: true }}
+            evidence={quickEvidence({ metric: "Port revenue (FY to date)", value: "$46.2M", objectRef: "object · port:durban", confidence: 0.55, status: "demo", pillar: "Financial Data", source: "imf-worldbank", gold: "gold_port_revenue*" })}
           />
-          <StatCard label="Infrastructure utilisation" value="71%" subtitle="Weighted across 7 pilot ports" />
+          <StatCard label="Infrastructure utilisation" value="71%" subtitle="Weighted across 7 pilot ports"
+            evidence={quickEvidence({ metric: "Infrastructure utilisation", value: "71%", objectRef: "object · ports (7 pilot)", confidence: 0.6, status: "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_port_activity_30d" })}
+          />
           <StatCard
             label="Blended finance signals"
             value="4"
             subtitle="Corridors with rising volume + capacity gap"
+            evidence={quickEvidence({ metric: "Blended finance signals", value: "4 corridors", objectRef: "object · corridors", confidence: 0.5, status: "demo", pillar: "Trade Analytics", source: "portwatch", silver: "port_activity_daily", gold: "gold_corridor_gateway_activity" })}
           />
         </div>
       </div>

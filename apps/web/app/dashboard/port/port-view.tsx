@@ -7,6 +7,7 @@ import { InsightPanel } from "@/components/intelligence/insight-panel";
 import { VesselMap } from "@/components/maps/vessel-map";
 import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
 import { demoFeed } from "@/lib/feed";
+import { quickEvidence } from "@/lib/evidence/build";
 import { PORTS, marineConditions, portCalls30d, portKpis, vesselQueue } from "@/lib/demo-data";
 
 const nf = new Intl.NumberFormat("en-US");
@@ -50,6 +51,7 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
           delta={{ text: "1.8h vs prior 30d", direction: "down", positive: true }}
           context={`${kpis.vesselsInbound} vessels inbound · next arrival in 2h`}
           feed={aisFeed}
+          evidence={quickEvidence({ metric: "Avg anchorage wait", value: `${kpis.avgWaitHours} hours`, objectRef: "object · port:durban", confidence: 0.74, status: "demo", pillar: "AIS & Vessels", source: "ais", gold: "gold_port_congestion*", recommendation: "Shift two Panamax windows off the Thursday swell peak to hold wait under 18h." })}
         />
         <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
           <StatCard
@@ -58,13 +60,17 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
             delta={portCallsLive ? undefined : { text: "4.2% vs prior 30d", direction: "up", positive: true }}
             subtitle={portCallsLive ? port.name : undefined}
             feed={portCallsFeed}
+            evidence={quickEvidence({ metric: "Port calls (30 days)", value: nf.format(portCallsValue), objectRef: "object · port:durban", confidence: portCallsLive ? 0.95 : 0.4, status: portCallsLive ? "live" : "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_port_activity_30d" })}
           />
-          <StatCard label="Vessels inbound" value={String(kpis.vesselsInbound)} subtitle="Next arrival in 2h" feed={aisFeed} />
+          <StatCard label="Vessels inbound" value={String(kpis.vesselsInbound)} subtitle="Next arrival in 2h" feed={aisFeed}
+            evidence={quickEvidence({ metric: "Vessels inbound", value: String(kpis.vesselsInbound), objectRef: "object · port:durban", confidence: 0.5, status: "demo", pillar: "AIS & Vessels", source: "ais", gold: "gold_vessel_queue*" })}
+          />
           <StatCard
             label="Throughput (30 days)"
             value={`${nf.format(kpis.throughputTeu30d)} TEU`}
             delta={{ text: "2.9% vs prior 30d", direction: "up", positive: true }}
             feed={aisFeed}
+            evidence={quickEvidence({ metric: "Throughput (30 days)", value: `${nf.format(kpis.throughputTeu30d)} TEU`, objectRef: "object · port:durban", confidence: 0.6, status: "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_port_activity_30d" })}
           />
         </div>
       </div>

@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import type { PillarFeed } from "@sinapse/shared";
 import { feedLabel } from "@/lib/feed";
 import { Skeleton, SkeletonChart } from "@/components/ui/skeleton";
+import { Explainable } from "@/components/evidence/explainable";
+import type { EvidenceRecord } from "@/lib/evidence/types";
 
 type Delta = { text: string; direction: "up" | "down"; positive: boolean };
 
@@ -51,6 +53,7 @@ export function StatCard({
   subtitle,
   delta,
   feed,
+  evidence,
   loading = false,
 }: {
   label: string;
@@ -58,10 +61,11 @@ export function StatCard({
   subtitle?: string;
   delta?: Delta;
   feed?: PillarFeed;
+  evidence?: EvidenceRecord;
   loading?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+    <div className="flex flex-col rounded-xl border border-border bg-card p-6 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
         {feed && <FeedStamp feed={feed} />}
@@ -88,6 +92,11 @@ export function StatCard({
             )}
             {subtitle && <span className="text-muted-foreground">{subtitle}</span>}
           </div>
+          {evidence && (
+            <div className="mt-auto">
+              <Explainable evidence={evidence} />
+            </div>
+          )}
         </>
       )}
     </div>
@@ -102,6 +111,7 @@ export function HeroStat({
   delta,
   context,
   feed,
+  evidence,
   loading = false,
   children,
 }: {
@@ -111,6 +121,7 @@ export function HeroStat({
   delta?: Delta;
   context?: string;
   feed?: PillarFeed;
+  evidence?: EvidenceRecord;
   loading?: boolean;
   children?: ReactNode;
 }) {
@@ -145,6 +156,7 @@ export function HeroStat({
         {context && <span className="text-muted-foreground">{context}</span>}
       </div>
       {children && <div className="mt-4">{children}</div>}
+      {evidence && !loading && <Explainable evidence={evidence} />}
     </div>
   );
 }

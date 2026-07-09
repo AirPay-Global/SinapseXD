@@ -6,6 +6,7 @@ import { GroupedBars, RankedBars } from "@/components/charts/charts";
 import { InsightPanel } from "@/components/intelligence/insight-panel";
 import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
 import { demoFeed } from "@/lib/feed";
+import { quickEvidence } from "@/lib/evidence/build";
 import type { CorridorGateway } from "@/lib/ontology/types";
 import { corridorFlows } from "@/lib/demo-data";
 
@@ -47,11 +48,18 @@ export function AfcftaView({
           delta={{ text: "1.3 pts YoY", direction: "up", positive: true }}
           context="of total African trade · AfCFTA target 25% by 2030"
           feed={demoFeed()}
+          evidence={quickEvidence({ metric: "Intra-African trade share", value: "16.8%", objectRef: "object · Africa (55 states)", confidence: 0.5, status: "demo", pillar: "Trade Analytics", source: "comtrade", gold: "gold_intra_africa_share*", recommendation: "Close the ECCAS inclusion gap to lift the continental share toward the 2030 target." })}
         />
         <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
-          <StatCard label="States trading under AfCFTA" value="47 / 55" subtitle="Guided Trade Initiative + full" feed={demoFeed()} />
-          <StatCard label="Digital Trade Protocol" value="31" subtitle="member states with aligned data standards" feed={demoFeed()} />
-          <StatCard label="Landlocked corridor volume" value="+9.4%" subtitle="YoY, landlocked-serving corridors" feed={demoFeed()} />
+          <StatCard label="States trading under AfCFTA" value="47 / 55" subtitle="Guided Trade Initiative + full" feed={demoFeed()}
+            evidence={quickEvidence({ metric: "States trading under AfCFTA", value: "47 / 55", objectRef: "object · countries", confidence: 0.6, status: "demo", pillar: "Trade Analytics", source: "afcfta", gold: "gold_afcfta_participation*" })}
+          />
+          <StatCard label="Digital Trade Protocol" value="31" subtitle="member states with aligned data standards" feed={demoFeed()}
+            evidence={quickEvidence({ metric: "Digital Trade Protocol alignment", value: "31 states", objectRef: "policy · DTP 2024", confidence: 0.5, status: "demo", pillar: "Governance", source: "afcfta", gold: "gold_dtp_alignment*" })}
+          />
+          <StatCard label="Landlocked corridor volume" value="+9.4%" subtitle="YoY, landlocked-serving corridors" feed={demoFeed()}
+            evidence={quickEvidence({ metric: "Landlocked corridor volume", value: "+9.4% YoY", objectRef: "object · corridors (landlocked)", confidence: 0.65, status: "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_corridor_gateway_activity" })}
+          />
         </div>
       </div>
 

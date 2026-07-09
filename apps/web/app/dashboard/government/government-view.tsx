@@ -6,6 +6,7 @@ import { RankedBars, TrendLines } from "@/components/charts/charts";
 import { InsightPanel } from "@/components/intelligence/insight-panel";
 import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
 import { demoFeed } from "@/lib/feed";
+import { quickEvidence } from "@/lib/evidence/build";
 import type { CorridorGateway } from "@/lib/ontology/types";
 import { FREIGHT_ROUTES, corridorFlows, freightRates90d } from "@/lib/demo-data";
 
@@ -51,20 +52,25 @@ export function GovernmentView({
           delta={{ text: "0.9 days YoY", direction: "down", positive: true }}
           context={`${flows.length} pilot corridors · June 2026`}
           feed={demoFeed()}
+          evidence={quickEvidence({ metric: "Avg corridor transit", value: `${avgTransit} days`, objectRef: "object · corridors (7 pilot)", confidence: 0.7, status: "demo", pillar: "Trade Analytics", source: "portwatch", silver: "port_activity_daily", gold: "gold_corridor_gateway_activity", recommendation: "Prioritise customs digitisation on the slowest corridor (Galafi shows the strongest gains)." })}
         />
         <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
-          <StatCard label="Monitored corridors" value={String(flows.length)} subtitle="7 pilot corridors" feed={demoFeed()} />
+          <StatCard label="Monitored corridors" value={String(flows.length)} subtitle="7 pilot corridors" feed={demoFeed()}
+            evidence={quickEvidence({ metric: "Monitored corridors", value: String(flows.length), objectRef: "object · corridors", confidence: 0.95, status: "live", pillar: "Ontology", source: "ontology", silver: "ont_corridor", gold: "ont_corridor" })}
+          />
           <StatCard
             label="Corridor trade value"
             value={usd(totalValue)}
             delta={{ text: "6.1% YoY", direction: "up", positive: true }}
             feed={demoFeed()}
+            evidence={quickEvidence({ metric: "Corridor trade value", value: usd(totalValue), objectRef: "object · corridors (7 pilot)", confidence: 0.5, status: "demo", pillar: "Trade Analytics", source: "comtrade", gold: "gold_corridor_trade_value*" })}
           />
           <StatCard
             label="Trade cost index (SDG 10)"
             value="82.4"
             subtitle="2019 = 100 · lower is better"
             feed={demoFeed()}
+            evidence={quickEvidence({ metric: "Trade cost index (SDG 10)", value: "82.4", objectRef: "indicator · SDG 10.a.1", confidence: 0.55, status: "demo", pillar: "SDG Reporting", source: "un-sdg", gold: "gold_sdg_trade_cost*", recommendation: "Track against the SDG 10 target; digitised corridors are moving it fastest." })}
           />
         </div>
       </div>
