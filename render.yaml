@@ -5,7 +5,11 @@ services:
   - type: web
     name: sinapse-xd-web
     runtime: node
-    buildCommand: corepack enable && pnpm install && pnpm build --filter=web
+    # Render's Node image ships with corepack/pnpm already enabled at a
+    # read-only system path; calling `corepack enable` ourselves tries to
+    # rewrite that shim and fails with EROFS. pnpm alone is enough — the
+    # existing shim still honours package.json's pinned "packageManager".
+    buildCommand: pnpm install && pnpm build --filter=web
     startCommand: pnpm --filter=web start
     envVars:
       - fromGroup: sinapse-xd-env
