@@ -541,6 +541,7 @@ SUPABASE_STORAGE_BUCKET_EXPORTS=sinapse-exports
 # ── Upstash Redis (cache + BullMQ job queues) ─────────────
 UPSTASH_REDIS_REST_URL=https://your-redis-name.upstash.io
 UPSTASH_REDIS_REST_TOKEN=AXxx...
+UPSTASH_REDIS_URL=rediss://default:PASSWORD@your-redis-name.upstash.io:6379
 
 # ── Auth (Clerk) ──────────────────────────────────────────
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...

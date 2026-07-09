@@ -11,6 +11,16 @@ services:
       - sinapse-xd-env
     autoDeploy: true
 
+  # ── Silver consumer — drains queues → Postgres (Silver) ─
+  - type: worker
+    name: sinapse-silver-consumer
+    runtime: python
+    buildCommand: pip install -r packages/pipeline/requirements.txt
+    startCommand: python -m consumers.silver_consumer
+    rootDir: packages/pipeline
+    envVarGroups:
+      - sinapse-xd-env
+
   # ── AIS ingestor — real-time background worker ──────────
   - type: worker
     name: sinapse-pipeline-ais
