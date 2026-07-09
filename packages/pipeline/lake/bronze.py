@@ -115,7 +115,10 @@ def bronze_from_env() -> BronzeLake | None:
     """Build the production Bronze lake from env, or None when unconfigured
     (ingestors then skip landing — dashboards still run on demo data)."""
     url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    # SUPABASE_SECRET_KEY is Supabase's current name for the elevated server
+    # key; SUPABASE_SERVICE_ROLE_KEY is kept as a fallback for older projects
+    # still on the legacy key naming.
+    key = os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     bucket = os.environ.get("SUPABASE_STORAGE_BUCKET_RAW", "sinapse-bronze")
     if not (url and key):
         return None
