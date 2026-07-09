@@ -42,7 +42,7 @@ const NAV: Group[] = [
   {
     heading: "Explore",
     items: [
-      { label: "Ontology Explorer", soon: true, badge: "21", icon: I("M12 7V5M8 15l3-3M16 15l-3-3M12 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M5 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M19 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3") },
+      { href: "/ontology", label: "Ontology Explorer", badge: "14", icon: I("M12 7V5M8 15l3-3M16 15l-3-3M12 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M5 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M19 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3") },
       { label: "Intelligence Centre", soon: true, icon: I("M4 4h16v12H4zM8 14l3-3 2 2 5-5") },
       { label: "Evidence Centre", soon: true, icon: I("M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6zM9 12l2 2 4-4") },
       { label: "Digital Twin", soon: true, icon: I("M12 2 3 7v10l9 5 9-5V7zM3 7l9 5 9-5M12 12v10") },
