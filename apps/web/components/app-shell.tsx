@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { EvidenceProvider } from "@/components/evidence/evidence-drawer";
+import { RoleSwitcher } from "@/components/role-switcher";
 
 /**
  * Decision OS shell (Design Bible §3). Decision-first, dual-navigation:
@@ -27,6 +28,7 @@ const NAV: Group[] = [
     heading: "Decide",
     items: [
       { href: "/decision", label: "Decision Centre", icon: I("M3 12h4l3 8 4-16 3 8h4") },
+      { href: "/stakeholders", label: "Stakeholders", badge: "14", icon: I("M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75") },
       { label: "AI Copilot", soon: true, icon: I("M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9z") },
     ],
   },
@@ -44,7 +46,7 @@ const NAV: Group[] = [
     items: [
       { href: "/ontology", label: "Ontology Explorer", badge: "14", icon: I("M12 7V5M8 15l3-3M16 15l-3-3M12 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M5 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M19 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3") },
       { label: "Intelligence Centre", soon: true, icon: I("M4 4h16v12H4zM8 14l3-3 2 2 5-5") },
-      { label: "Evidence Centre", soon: true, icon: I("M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6zM9 12l2 2 4-4") },
+      { href: "/evidence", label: "Evidence Centre", icon: I("M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6zM9 12l2 2 4-4") },
       { label: "Digital Twin", soon: true, icon: I("M12 2 3 7v10l9 5 9-5V7zM3 7l9 5 9-5M12 12v10") },
     ],
   },
@@ -97,6 +99,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
 
+          <RoleSwitcher />
+
           <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
             {NAV.map((g) => (
               <div key={g.heading}>
@@ -122,11 +126,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="rounded border border-border px-1.5 font-mono text-[10px]">⌘K</span>
             </div>
             <div className="ml-auto flex items-center gap-2.5">
-              <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-navy text-[11px] font-bold text-white">PC</span>
-              <div className="hidden leading-tight sm:block">
-                <p className="text-[12.5px] font-semibold text-foreground">Port CEO</p>
-                <p className="text-[10.5px] text-muted-foreground">Port of Durban</p>
-              </div>
+              <span className="rounded-full border border-border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Decision OS</span>
             </div>
           </header>
 
