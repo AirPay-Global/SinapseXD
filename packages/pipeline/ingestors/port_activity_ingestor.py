@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 class PortActivityIngestor(BaseIngestor):
     queue_name = "port.activity.daily"
+    pillar = "port_activity"
+    source = "portwatch"
 
     def __init__(self) -> None:
         self.enabled = os.environ.get("PORTWATCH_ENABLED", "false").lower() == "true"

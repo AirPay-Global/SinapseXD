@@ -23,6 +23,7 @@ AFRICA_BBOX = {"latmin": -35.0, "latmax": 15.0, "lonmin": -20.0, "lonmax": 52.0}
 
 class AisIngestor(BaseIngestor):
     queue_name = "ais.vessel.positions"
+    pillar = "ais"
 
     def __init__(self) -> None:
         provider = os.environ.get("AIS_PROVIDER", "aishub").lower()
@@ -30,6 +31,7 @@ class AisIngestor(BaseIngestor):
             self.provider = AISHubProvider()
         else:
             raise ValueError(f"Unknown AIS_PROVIDER: {provider!r} (only 'aishub' wired so far)")
+        self.source = provider
         self.bbox = AFRICA_BBOX
 
     def fetch(self) -> list[dict]:

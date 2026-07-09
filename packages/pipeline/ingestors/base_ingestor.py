@@ -18,6 +18,14 @@ logger = logging.getLogger(__name__)
 class BaseIngestor(ABC):
     #: BullMQ queue name, e.g. "ais.vessel.positions"
     queue_name: str
+    #: Lakehouse pillar tag for Bronze partitioning, e.g. "ais".
+    pillar: str = "unknown"
+    #: Provider/source tag for Bronze partitioning, e.g. "portwatch".
+    source: str = "unknown"
+
+    #: Optional Bronze lake + lineage catalog; injected or built from env.
+    bronze = None      # type: ignore[assignment]
+    lineage = None     # type: ignore[assignment]
 
     @abstractmethod
     def fetch(self) -> list[dict]:
@@ -26,6 +34,18 @@ class BaseIngestor(ABC):
     @abstractmethod
     def normalise(self, raw: dict) -> dict:
         """Map a raw record to the Sinapse XD schema (UTC timestamps)."""
+
+    def land_raw(self, raw: list[dict]) -> str | None:
+        """Write the raw batch to Bronze (immutable Parquet) and index its
+        lineage. Returns the lineageRef, or None when Bronze isn't configured
+        (dev/demo) — the pipeline still runs, just without raw retention."""
+        if not self.bronze:
+            return None
+        landing = self.bronze.land(self.pillar, self.source, raw)
+        if self.lineage:
+            self.lineage.record(landing)
+        logger.info("landed %d raw records to Bronze: %s", landing.row_count, landing.ref)
+        return landing.ref
 
     def enqueue(self, records: list[dict]) -> None:
         """Push normalised records to the BullMQ queue on Upstash Redis.
@@ -45,9 +65,36 @@ class BaseIngestor(ABC):
             client.lpush(f"bull:{self.queue_name}:wait", json.dumps(job))
         logger.info("enqueued %d records to %s", len(records), self.queue_name)
 
+    def _configure_lake(self) -> None:
+        """Build Bronze + lineage from env when not already injected (tests
+        inject their own doubles, so those win and this is a no-op)."""
+        if self.bronze is None:
+            from lake import bronze_from_env
+
+            self.bronze = bronze_from_env()
+        if self.bronze is not None and self.lineage is None:
+            dsn = os.environ.get("DATABASE_URL")
+            if dsn:
+                import psycopg
+
+                from lake import LineageCatalog
+
+                self.lineage = LineageCatalog(psycopg.connect(dsn))
+
     def run(self) -> None:
+        self._configure_lake()
         raw = self.fetch()
-        records = [self.normalise(r) for r in raw]
+        if not raw:
+            return
+        # Bronze first — raw is retained before any transform, so Silver is
+        # always replayable and each record carries a lineageRef.
+        lineage_ref = self.land_raw(raw)
+        records = []
+        for r in raw:
+            rec = self.normalise(r)
+            if lineage_ref is not None:
+                rec["lineageRef"] = lineage_ref
+            records.append(rec)
         # Idempotency: normalise() must emit a stable natural key per record
         # (e.g. imo+timestamp) so re-runs upsert rather than duplicate.
         self.enqueue(records)
