@@ -23,13 +23,17 @@ function Ring({ v }: { v: number }) {
   return (
     <svg width="56" height="56" viewBox="0 0 42 42">
       <circle cx="21" cy="21" r={r} fill="none" stroke="var(--border)" strokeWidth="4" />
-      <circle cx="21" cy="21" r={r} fill="none" stroke="var(--success)" strokeWidth="4" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v)} transform="rotate(-90 21 21)" />
+      {/* Neutral blue, matching the Evidence drawer's confidence bar — confidence
+          is not a status traffic light, so it shouldn't borrow success/warning hues. */}
+      <circle cx="21" cy="21" r={r} fill="none" stroke="var(--brand-blue)" strokeWidth="4" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v)} transform="rotate(-90 21 21)" />
       <text x="21" y="21" textAnchor="middle" dominantBaseline="central" className="font-mono" fontSize="10" fontWeight="700" fill="var(--foreground)">{Math.round(v * 100)}</text>
     </svg>
   );
 }
 
 const TONE: Record<string, string> = { ok: "text-success", warn: "text-warning", plain: "text-card-foreground" };
+const STATUS_TEXT: Record<string, string> = { live: "text-success", demo: "text-warning", planned: "text-muted-foreground" };
+const STATUS_VAR: Record<string, string> = { live: "var(--success)", demo: "var(--warning)", planned: "var(--muted-foreground)" };
 
 export function ProfileView({ data }: { data: ProfileData }) {
   const open = useEvidence();
@@ -51,7 +55,12 @@ export function ProfileView({ data }: { data: ProfileData }) {
             {data.meta.map((m) => (
               <span key={m} className="rounded-md border border-border bg-background px-2 py-0.5 font-mono text-[11px] text-muted-foreground">{m}</span>
             ))}
-            <span className="rounded-full px-2 py-0.5 font-mono text-[10px] text-success" style={{ background: "color-mix(in srgb,var(--success) 15%,transparent)" }}>{data.status} · PortWatch</span>
+            <span
+              className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${STATUS_TEXT[data.status]}`}
+              style={{ background: `color-mix(in srgb, ${STATUS_VAR[data.status]} 15%, transparent)` }}
+            >
+              {data.status} · PortWatch
+            </span>
           </div>
         </div>
         <div className="ml-auto shrink-0 text-center">
