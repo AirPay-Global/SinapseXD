@@ -74,6 +74,33 @@ export async function getPortThroughputMonthly(
   }
 }
 
+export interface CorridorGateway {
+  corridor_id: string;
+  corridor_name: string;
+  gateway_port: string;
+  port_calls_30d: number;
+  throughput_tons_30d: number;
+  as_of: string;
+}
+
+export async function getCorridorGatewayActivity(): Promise<{
+  data: CorridorGateway[];
+  feed: PillarFeed;
+}> {
+  try {
+    const supabase = await client();
+    const { data, error } = await supabase
+      .from("gold_corridor_gateway_activity")
+      .select("*")
+      .order("throughput_tons_30d", { ascending: false });
+    if (error || !data || data.length === 0) return { data: [], feed: downFeed() };
+    const rows = data as CorridorGateway[];
+    return { data: rows, feed: liveFeed(rows[0].as_of) };
+  } catch {
+    return { data: [], feed: downFeed() };
+  }
+}
+
 /**
  * Pivot Gold throughput rows into the StackedBars shape:
  * [{ month: "2026-07", Containers: 510, "Dry bulk": 0, … }] plus the series

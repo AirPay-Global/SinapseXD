@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/app-shell";
 import { TargetBars, TrendLines } from "@/components/charts/charts";
 import { InsightPanel } from "@/components/intelligence/insight-panel";
 import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
-import { liveFeed } from "@/lib/feed";
+import { demoFeed } from "@/lib/feed";
 import { revenueVsForecast, sdgIndicators } from "@/lib/demo-data";
 
 const usd = (v: number) => `$${(v / 1e6).toFixed(1)}M`;
@@ -15,8 +15,8 @@ export default function DfiDashboard() {
   const sdg = sdgIndicators();
   const revenue = revenueVsForecast();
   const onTrack = sdg.filter((s) => s.value / s.target >= 0.6).length;
-  const sdgFeed = liveFeed();
-  const financialFeed = liveFeed();
+  const sdgFeed = demoFeed();
+  const financialFeed = demoFeed();
 
   return (
     <>
