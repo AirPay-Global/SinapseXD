@@ -17,16 +17,23 @@ export function downFeed(): PillarFeed {
   return { status: "down", asOf: null };
 }
 
+/** Illustrative data shown before live ingestion is wired. */
+export function demoFeed(): PillarFeed {
+  return { status: "demo", asOf: null };
+}
+
 const STATUS_LABEL: Record<FeedStatus, string> = {
   live: "Live",
   loading: "Loading",
   stale: "Stale",
   down: "No feed",
+  demo: "Demo data",
 };
 
 export function feedLabel(feed: PillarFeed): string {
-  if (feed.status === "down") return STATUS_LABEL.down;
-  if (feed.status === "loading") return STATUS_LABEL.loading;
+  if (feed.status === "down" || feed.status === "loading" || feed.status === "demo") {
+    return STATUS_LABEL[feed.status];
+  }
   const label = STATUS_LABEL[feed.status];
   return feed.asOf ? `${label} · as of ${formatAsOf(feed.asOf)}` : label;
 }

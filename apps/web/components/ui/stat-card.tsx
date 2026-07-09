@@ -11,6 +11,7 @@ const FEED_DOT: Record<PillarFeed["status"], string> = {
   loading: "bg-muted-foreground",
   stale: "bg-warning",
   down: "bg-destructive",
+  demo: "bg-warning",
 };
 
 export function FeedStamp({ feed }: { feed: PillarFeed }) {
@@ -49,17 +50,22 @@ export function StatCard({
   value,
   subtitle,
   delta,
+  feed,
   loading = false,
 }: {
   label: string;
   value: string;
   subtitle?: string;
   delta?: Delta;
+  feed?: PillarFeed;
   loading?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        {feed && <FeedStamp feed={feed} />}
+      </div>
       {loading ? (
         <>
           <Skeleton className="mt-2 h-9 w-24" />

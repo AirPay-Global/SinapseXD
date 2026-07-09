@@ -16,8 +16,9 @@ export type DataPillar =
 // ── Feed freshness ──────────────────────────────────────
 // Every pillar-backed surface reports one of these so a late or failed
 // ingestion never renders as a real zero. Dashboards and the pipeline
-// share this vocabulary.
-export type FeedStatus = "live" | "loading" | "stale" | "down";
+// share this vocabulary. "demo" = illustrative data shown before live
+// ingestion is wired, rendered but clearly labelled as not real.
+export type FeedStatus = "live" | "loading" | "stale" | "down" | "demo";
 
 export interface PillarFeed {
   status: FeedStatus;
