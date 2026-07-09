@@ -5,11 +5,16 @@ AisProvider interface; Spire/MarineTraffic (production African coverage)
 drop in as additional providers with no change to normalise() or the queue.
 Selection is by environment — no key set means the worker stays idle and
 dashboards render from demo data (per the standalone-XD build focus).
+
+Runs as a Render background worker, so it must stay alive: poll_forever()
+loops run() on an interval (default 60s, matching AISHub's documented
+1-request/minute rate limit) rather than exiting after a single fetch.
 """
 from __future__ import annotations
 
 import logging
 import os
+import time
 
 from .base_ingestor import BaseIngestor
 from .providers.aishub import AISHubProvider
@@ -19,6 +24,8 @@ logger = logging.getLogger(__name__)
 # Dev bounding box: African coastline envelope. Spire's production config
 # will slice this per-port instead.
 AFRICA_BBOX = {"latmin": -35.0, "latmax": 15.0, "lonmin": -20.0, "lonmax": 52.0}
+
+DEFAULT_POLL_SECONDS = 60.0
 
 
 class AisIngestor(BaseIngestor):
@@ -40,7 +47,27 @@ class AisIngestor(BaseIngestor):
     def normalise(self, raw: dict) -> dict:
         return self.provider.normalise(raw)
 
+    def poll_forever(self, poll_seconds: float | None = None, max_iterations: int | None = None) -> None:
+        """Long-running loop for the Render worker process. A single failed
+        iteration is logged and swallowed — a transient fetch/enqueue error
+        must not crash the whole worker. max_iterations is test-only, to make
+        the loop terminate rather than run forever."""
+        interval = poll_seconds if poll_seconds is not None else float(
+            os.environ.get("AIS_POLL_INTERVAL_SECONDS", DEFAULT_POLL_SECONDS)
+        )
+        logger.info("AIS ingestor polling every %.0fs (provider=%s)", interval, self.source)
+        i = 0
+        while max_iterations is None or i < max_iterations:
+            try:
+                self.run()
+            except Exception:
+                logger.exception("AIS ingestor iteration failed; will retry next cycle")
+            i += 1
+            if max_iterations is None or i < max_iterations:
+                time.sleep(interval)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    AisIngestor().run()
+    AisIngestor().poll_forever()
+

@@ -12,11 +12,14 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import time
 
 from .handlers import HANDLERS
 
 logger = logging.getLogger(__name__)
+
+REQUIRED_ENV = ("DATABASE_URL", "UPSTASH_REDIS_URL")
 
 
 class SilverConsumer:
@@ -75,8 +78,31 @@ def _main() -> None:
     import redis
 
     logging.basicConfig(level=logging.INFO)
-    conn = psycopg.connect(os.environ["DATABASE_URL"])
-    client = redis.from_url(os.environ["UPSTASH_REDIS_URL"])
+
+    # Fail fast with a readable, actionable message — a bare KeyError
+    # traceback from os.environ[...] isn't diagnosable in Render's logs.
+    missing = [name for name in REQUIRED_ENV if not os.environ.get(name)]
+    if missing:
+        logger.error(
+            "Silver consumer cannot start — missing required env var(s): %s. "
+            "Set these on the sinapse-xd-env Environment Group in Render.",
+            ", ".join(missing),
+        )
+        sys.exit(1)
+
+    try:
+        conn = psycopg.connect(os.environ["DATABASE_URL"])
+    except Exception as exc:
+        logger.error("Silver consumer cannot connect to DATABASE_URL: %s", exc)
+        sys.exit(1)
+
+    try:
+        client = redis.from_url(os.environ["UPSTASH_REDIS_URL"])
+        client.ping()
+    except Exception as exc:
+        logger.error("Silver consumer cannot connect to UPSTASH_REDIS_URL: %s", exc)
+        sys.exit(1)
+
     SilverConsumer(client, conn).run()
 
 
