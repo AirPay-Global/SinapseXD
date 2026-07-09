@@ -1,10 +1,7 @@
 import type { ReactNode } from "react";
-import { AppShell } from "@/components/app-shell";
 
+// The Decision OS shell (with the Evidence drawer provider) is applied once in
+// the root layout, so stakeholder command centres just render their content.
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  return (
-    <AppShell>
-      <main className="px-6 py-8 lg:px-10">{children}</main>
-    </AppShell>
-  );
+  return <>{children}</>;
 }

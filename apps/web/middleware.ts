@@ -4,9 +4,12 @@ import { createClient } from "@/lib/supabase/middleware";
 export async function middleware(request: NextRequest) {
   const { supabase, response } = createClient(request);
 
-  // Refreshes the session cookie on every request so Server Components
-  // always see a valid session.
-  await supabase.auth.getUser();
+  // Refreshes the session cookie on every request so Server Components always
+  // see a valid session. supabase is null when Supabase isn't configured —
+  // skip the refresh and let the app render on demo data instead of 500ing.
+  if (supabase) {
+    await supabase.auth.getUser();
+  }
 
   return response;
 }

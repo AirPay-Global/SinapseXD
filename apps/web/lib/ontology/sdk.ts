@@ -50,9 +50,17 @@ function toCorridor(r: Row): Corridor {
 }
 
 export async function createOntology() {
-  const supabase = createClient(await cookies());
+  // Build the client defensively — a missing/misconfigured Supabase env must
+  // degrade to empty reads (demo fallback), never throw and 500 the page.
+  let supabase: ReturnType<typeof createClient> | null = null;
+  try {
+    supabase = createClient(await cookies());
+  } catch {
+    supabase = null;
+  }
 
   async function one<T>(table: string, col: string, val: string, map: (r: Row) => T): Promise<T | null> {
+    if (!supabase) return null;
     try {
       const { data, error } = await supabase.from(table).select("*").eq(col, val).maybeSingle();
       return error || !data ? null : map(data as Row);
@@ -62,6 +70,7 @@ export async function createOntology() {
   }
 
   async function many<T>(table: string, map: (r: Row) => T, col?: string, val?: string): Promise<T[]> {
+    if (!supabase) return [];
     try {
       let q = supabase.from(table).select("*");
       if (col && val !== undefined) q = q.eq(col, val);
@@ -90,6 +99,7 @@ export async function createOntology() {
 
     // ── Derived reads (Gold marts) ──────────────────────
     async activity30d(id: string): Promise<{ data: PortActivity30d | null; feed: PillarFeed }> {
+      if (!supabase) return { data: null, feed: downFeed() };
       try {
         const { data, error } = await supabase
           .from(ONTOLOGY_MARTS.portActivity30d)
@@ -104,6 +114,7 @@ export async function createOntology() {
     },
 
     async throughputMonthly(id: string): Promise<{ data: ThroughputRow[]; feed: PillarFeed }> {
+      if (!supabase) return { data: [], feed: downFeed() };
       try {
         const { data, error } = await supabase
           .from(ONTOLOGY_MARTS.portThroughputMonthly)
@@ -125,6 +136,7 @@ export async function createOntology() {
     originPort: (corridor: Corridor) => ports.get(corridor.originPortId),
 
     async gatewayActivity(): Promise<{ data: CorridorGateway[]; feed: PillarFeed }> {
+      if (!supabase) return { data: [], feed: downFeed() };
       try {
         const { data, error } = await supabase
           .from(ONTOLOGY_MARTS.corridorGatewayActivity)

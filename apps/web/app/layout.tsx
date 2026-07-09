@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { AppShell } from "@/components/app-shell";
 
 export const metadata: Metadata = {
-  title: "Sinapse XD — Trade Intelligence",
+  title: "Sinapse — Decision OS",
   description:
-    "Trade intelligence platform for African ports and AfCFTA institutions, by AirPay Global.",
+    "Decision Intelligence Platform for African trade, infrastructure and governance, by AirPay Global.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }

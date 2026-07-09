@@ -13,7 +13,13 @@ export const createClient = (request: NextRequest) => {
     },
   });
 
-  const supabase = createServerClient(supabaseUrl!, supabaseKey!, {
+  // Degrade gracefully when Supabase isn't configured (e.g. env group not yet
+  // set on Render): skip auth refresh rather than 500 every route.
+  if (!supabaseUrl || !supabaseKey) {
+    return { supabase: null, response: supabaseResponse };
+  }
+
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
