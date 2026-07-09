@@ -114,6 +114,24 @@ def _parse_eta(raw: object, now: datetime | None = None) -> str:
     return eta.isoformat()
 
 
+def _parse_time(raw: object, now: datetime | None = None) -> str:
+    """AISHub TIME is "YYYYMMDDHHMMSS" UTC (last position report). Falls back
+    to ingest time when absent/unparseable so every record still gets a
+    partition key."""
+    now = now or datetime.now(timezone.utc)
+    text = str(raw or "").strip()
+    if len(text) == 14 and text.isdigit():
+        try:
+            return datetime(
+                int(text[0:4]), int(text[4:6]), int(text[6:8]),
+                int(text[8:10]), int(text[10:12]), int(text[12:14]),
+                tzinfo=timezone.utc,
+            ).isoformat()
+        except ValueError:
+            pass
+    return now.isoformat()
+
+
 def _split_digits(text: str) -> list[str]:
     out, cur = [], ""
     for ch in text:
@@ -174,4 +192,6 @@ class AISHubProvider:
             "status": _NAVSTAT_TO_STATUS.get(navstat, "underway"),
             "destinationPort": str(raw.get("DEST", "") or "").strip(),
             "etaIso": _parse_eta(raw.get("ETA")),
+            "tsIso": _parse_time(raw.get("TIME")),
+            "source": "aishub",
         }

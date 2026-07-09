@@ -55,8 +55,10 @@ def db():
     import psycopg
 
     _psql(AUTH_STUB)
+    _psql(file=MIGRATIONS / "0001_intelligence_layer.sql")
     _psql(file=MIGRATIONS / "0002_ontology_core.sql")
     _psql(file=MIGRATIONS / "0003_silver_port_activity.sql")
+    _psql(file=MIGRATIONS / "0007_ais_vessel_positions.sql")
     conn = psycopg.connect(DSN)
     yield conn
     conn.close()
@@ -137,3 +139,58 @@ def test_unresolved_port_stores_null_keys_without_error(db):
         )
         canonical, iso3 = cur.fetchone()
     assert canonical is None and iso3 is None  # unknown port/country → NULL, FK-safe
+
+
+def test_ais_position_lands_ontology_keyed_and_idempotent(db):
+    import fakeredis
+
+    from consumers import SilverConsumer
+    from ingestors.providers.aishub import AISHubProvider
+
+    redis_client = fakeredis.FakeStrictRedis()
+    queue = "ais.vessel.positions"
+
+    raw = {
+        "MMSI": 601234567, "IMO": "9321483", "NAME": "MSC DURBAN", "TYPE": 71,
+        "LATITUDE": -29.87, "LONGITUDE": 31.03, "SOG": 12.4, "HEADING": 90,
+        "NAVSTAT": 0, "DEST": "DURBAN", "TIME": "20260709141530",
+    }
+    record = AISHubProvider.normalise(raw)
+    _enqueue(redis_client, queue, record)
+
+    consumer = SilverConsumer(redis_client, db, queues=[queue])
+    assert consumer.drain_once() == 1
+
+    with db.cursor() as cur:
+        cur.execute(
+            "select destination_port_id, name, vessel_type, speed_kn from vessel_positions "
+            "where mmsi = '601234567' and ts = '2026-07-09T14:15:30+00:00'"
+        )
+        row = cur.fetchone()
+    assert row is not None
+    dest, name, vtype, speed = row
+    assert dest == "durban"  # resolved via ontology.resolve_port
+    assert name == "MSC DURBAN"
+    assert vtype == "Cargo"
+    assert float(speed) == 12.4
+
+    # Idempotency: re-processing the same (mmsi, ts) upserts, doesn't duplicate.
+    _enqueue(redis_client, queue, record)
+    assert consumer.drain_once() == 1
+    with db.cursor() as cur:
+        cur.execute("select count(*) from vessel_positions where mmsi = '601234567'")
+        assert cur.fetchone()[0] == 1
+
+
+def test_ais_position_without_mmsi_is_dropped_not_errored(db):
+    import fakeredis
+
+    from consumers import SilverConsumer
+
+    redis_client = fakeredis.FakeStrictRedis()
+    queue = "ais.vessel.positions"
+    _enqueue(redis_client, queue, {"mmsi": "", "tsIso": "2026-07-09T00:00:00+00:00"})
+
+    consumer = SilverConsumer(redis_client, db, queues=[queue])
+    # Handler runs (no exception) but inserts nothing — commit still happens.
+    assert consumer.drain_once() == 1

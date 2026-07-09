@@ -22,16 +22,21 @@ export interface PortViewProps {
     isLive: boolean;
     feed: PillarFeed;
   };
+  vessels: {
+    data: import("@sinapse/shared").VesselPosition[];
+    isLive: boolean;
+    feed: PillarFeed;
+  };
 }
 
-export function PortView({ portCallsValue, portCallsLive, portCallsFeed, throughput }: PortViewProps) {
+export function PortView({ portCallsValue, portCallsLive, portCallsFeed, throughput, vessels }: PortViewProps) {
   const port = PORTS[0]; // Durban — port selector wires in with auth/orgs
   const kpis = portKpis(port.id);
-  const queue = vesselQueue(port.id).slice(0, 8);
+  const queue = (vessels.data.length ? vessels.data : vesselQueue(port.id)).slice(0, 8);
   const conditions = marineConditions().find((c) => c.portId === port.id)!;
 
-  // AIS live feed isn't wired yet (AISHub needs a reciprocal key), so the
-  // vessel/anchorage surfaces are honestly marked as demo.
+  // Port calls / throughput can be live via PortWatch marts; the anchorage
+  // KPI is still a demo estimate until a congestion mart is built.
   const aisFeed = demoFeed();
 
   return (
@@ -62,8 +67,8 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
             feed={portCallsFeed}
             evidence={quickEvidence({ metric: "Port calls (30 days)", value: nf.format(portCallsValue), objectRef: "object · port:durban", confidence: portCallsLive ? 0.95 : 0.4, status: portCallsLive ? "live" : "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_port_activity_30d" })}
           />
-          <StatCard label="Vessels inbound" value={String(kpis.vesselsInbound)} subtitle="Next arrival in 2h" feed={aisFeed}
-            evidence={quickEvidence({ metric: "Vessels inbound", value: String(kpis.vesselsInbound), objectRef: "object · port:durban", confidence: 0.5, status: "demo", pillar: "AIS & Vessels", source: "ais", gold: "gold_vessel_queue*" })}
+          <StatCard label="Vessels inbound" value={String(vessels.isLive ? vessels.data.length : kpis.vesselsInbound)} subtitle={vessels.isLive ? "Live AIS positions" : "Next arrival in 2h"} feed={vessels.feed}
+            evidence={quickEvidence({ metric: "Vessels inbound", value: String(vessels.isLive ? vessels.data.length : kpis.vesselsInbound), objectRef: "object · port:durban", confidence: vessels.isLive ? 0.85 : 0.5, status: vessels.isLive ? "live" : "demo", pillar: "AIS & Vessels", source: "ais", silver: "vessel_positions", gold: vessels.isLive ? "vessel_positions (live)" : "gold_vessel_queue*" })}
           />
           <StatCard
             label="Throughput (30 days)"
@@ -84,12 +89,12 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
           title="Live vessel picture"
           subtitle={`AIS positions within ±5° of ${port.name} · wave ${conditions.waveHeightM} m · wind ${conditions.windSpeedKn} kn`}
           pillar="AIS & Vessels"
-          feed={aisFeed}
+          feed={vessels.feed}
         >
-          <VesselMap vessels={vesselQueue(port.id)} center={port} />
+          <VesselMap vessels={queue} center={port} />
         </ChartCard>
 
-        <ChartCard title="Incoming vessel queue" subtitle="Next 8 arrivals by ETA" pillar="AIS & Vessels" feed={aisFeed}>
+        <ChartCard title="Incoming vessel queue" subtitle={vessels.isLive ? "Live AIS, by destination ETA" : "Next 8 arrivals by ETA"} pillar="AIS & Vessels" feed={vessels.feed}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -102,11 +107,11 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
               </thead>
               <tbody>
                 {queue.map((v) => (
-                  <tr key={v.imo} className="border-b border-border/50">
+                  <tr key={v.mmsi || v.imo} className="border-b border-border/50">
                     <td className="py-2.5 pr-4 font-medium text-card-foreground">{v.name}</td>
                     <td className="py-2.5 pr-4 text-muted-foreground">{v.type}</td>
                     <td className="py-2.5 pr-4 tabular-nums text-muted-foreground">
-                      {v.etaIso.slice(5, 16).replace("T", " ")}
+                      {v.etaIso ? v.etaIso.slice(5, 16).replace("T", " ") : "—"}
                     </td>
                     <td className="py-2.5">
                       <span

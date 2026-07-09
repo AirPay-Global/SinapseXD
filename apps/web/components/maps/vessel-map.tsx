@@ -51,7 +51,7 @@ export function VesselMap({
           const p = project(v.lat, v.lng);
           const y = (p.y * 62) / 100;
           return (
-            <g key={v.imo} transform={`translate(${p.x} ${y}) rotate(${v.heading})`}>
+            <g key={v.mmsi || v.imo} transform={`translate(${p.x} ${y}) rotate(${v.heading})`}>
               <path d="M0,-1.5 L1,1.2 L-1,1.2 Z" fill={statusColor[v.status]} stroke="var(--background)" strokeWidth="0.25">
                 <title>{`${v.name} · ${v.type} · ${v.speedKn} kn · ${v.status.replace("_", " ")}`}</title>
               </path>

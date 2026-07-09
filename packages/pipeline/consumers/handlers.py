@@ -12,7 +12,7 @@ from typing import Callable
 
 from psycopg import Connection
 
-from ontology import resolve_country
+from ontology import resolve_country, resolve_port
 
 Handler = Callable[[Connection, dict], None]
 
@@ -73,7 +73,67 @@ def handle_port_activity(conn: Connection, rec: dict) -> None:
     )
 
 
+def handle_vessel_position(conn: Connection, rec: dict) -> None:
+    """Upsert an AIS vessel-position report.
+
+    Idempotency key: (mmsi, ts) — AIS always carries MMSI; IMO is often blank
+    so it can't anchor the key. Destination is resolved to a canonical port
+    id where the crosswalk has a match; the raw string is always kept too so
+    nothing is lost on a resolver miss.
+    """
+    mmsi = str(rec.get("mmsi") or "").strip()
+    ts = rec.get("tsIso")
+    if not mmsi or not ts:
+        return
+    dest_raw = rec.get("destinationPort") or ""
+    dest_port_id = resolve_port("ais", native_id=dest_raw) if dest_raw else None
+    conn.execute(
+        """
+        insert into vessel_positions (
+          mmsi, imo, name, vessel_type, ts, lat, lng, speed_kn, heading, status,
+          destination_port_id, destination_raw, eta, source, lineage_ref
+        ) values (
+          %(mmsi)s, nullif(%(imo)s, ''), nullif(%(name)s, ''), %(vessel_type)s, %(ts)s,
+          %(lat)s, %(lng)s, %(speed_kn)s, %(heading)s, %(status)s,
+          %(dest_port_id)s, %(dest_raw)s,
+          nullif(%(eta)s, '')::timestamptz, %(source)s, %(lineage_ref)s
+        )
+        on conflict (mmsi, ts) do update set
+          imo                  = excluded.imo,
+          name                 = excluded.name,
+          vessel_type          = excluded.vessel_type,
+          lat                  = excluded.lat,
+          lng                  = excluded.lng,
+          speed_kn             = excluded.speed_kn,
+          heading              = excluded.heading,
+          status               = excluded.status,
+          destination_port_id  = excluded.destination_port_id,
+          destination_raw      = excluded.destination_raw,
+          eta                  = excluded.eta,
+          lineage_ref          = excluded.lineage_ref
+        """,
+        {
+            "mmsi": mmsi,
+            "imo": rec.get("imo") or "",
+            "name": rec.get("name") or "",
+            "vessel_type": rec.get("type"),
+            "ts": ts,
+            "lat": rec.get("lat", 0.0),
+            "lng": rec.get("lng", 0.0),
+            "speed_kn": rec.get("speedKn"),
+            "heading": rec.get("heading"),
+            "status": rec.get("status"),
+            "dest_port_id": dest_port_id,
+            "dest_raw": dest_raw,
+            "eta": rec.get("etaIso") or "",
+            "source": rec.get("source", "ais"),
+            "lineage_ref": rec.get("lineageRef"),
+        },
+    )
+
+
 # queue name → handler
 HANDLERS: dict[str, Handler] = {
     "port.activity.daily": handle_port_activity,
+    "ais.vessel.positions": handle_vessel_position,
 }

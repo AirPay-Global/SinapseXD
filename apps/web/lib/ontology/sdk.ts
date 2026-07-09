@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import type { Corridor, Country, PillarFeed, Port } from "@sinapse/shared";
+import type { Corridor, Country, PillarFeed, Port, VesselPosition, VesselStatus } from "@sinapse/shared";
 import { ONTOLOGY, ONTOLOGY_MARTS } from "@sinapse/shared";
 import { createClient } from "@/lib/supabase/server";
 import { downFeed, liveFeed } from "@/lib/feed";
@@ -123,6 +123,49 @@ export async function createOntology() {
           .order("month", { ascending: true });
         if (error || !data || data.length === 0) return { data: [], feed: downFeed() };
         return { data: data as ThroughputRow[], feed: liveFeed() };
+      } catch {
+        return { data: [], feed: downFeed() };
+      }
+    },
+
+    /** Latest AIS position per vessel reporting this port as destination,
+     * within the last `withinHours`. Falls back to demo data upstream when
+     * empty — AISHub is a sparse dev feed, so "no live vessels" is common. */
+    async vesselsNear(id: string, withinHours = 6): Promise<{ data: VesselPosition[]; feed: PillarFeed }> {
+      if (!supabase) return { data: [], feed: downFeed() };
+      try {
+        const since = new Date(Date.now() - withinHours * 3600_000).toISOString();
+        const { data, error } = await supabase
+          .from("vessel_positions")
+          .select("mmsi, imo, name, vessel_type, lat, lng, speed_kn, heading, status, destination_raw, eta, ts")
+          .eq("destination_port_id", id)
+          .gte("ts", since)
+          .order("ts", { ascending: false })
+          .limit(200);
+        if (error || !data || data.length === 0) return { data: [], feed: downFeed() };
+        const seen = new Set<string>();
+        const vessels: VesselPosition[] = [];
+        const validStatus: VesselStatus[] = ["underway", "at_anchor", "moored", "expected", "delayed"];
+        for (const r of data as Row[]) {
+          const mmsi = String(r.mmsi ?? "");
+          if (!mmsi || seen.has(mmsi)) continue;
+          seen.add(mmsi);
+          const status = String(r.status ?? "underway") as VesselStatus;
+          vessels.push({
+            mmsi,
+            imo: String(r.imo ?? ""),
+            name: String(r.name ?? mmsi),
+            type: String(r.vessel_type ?? "Other"),
+            lat: Number(r.lat),
+            lng: Number(r.lng),
+            speedKn: Number(r.speed_kn ?? 0),
+            heading: Number(r.heading ?? 0),
+            status: validStatus.includes(status) ? status : "underway",
+            destinationPort: String(r.destination_raw ?? ""),
+            etaIso: (r.eta as string) ?? "",
+          });
+        }
+        return { data: vessels, feed: liveFeed(vessels.length ? String((data as Row[])[0].ts) : undefined) };
       } catch {
         return { data: [], feed: downFeed() };
       }
