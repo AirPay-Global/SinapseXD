@@ -7,8 +7,8 @@ services:
     runtime: node
     buildCommand: corepack enable && pnpm install && pnpm build --filter=web
     startCommand: pnpm --filter=web start
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
     autoDeploy: true
 
   # ── Silver consumer — drains queues → Postgres (Silver) ─
@@ -18,8 +18,8 @@ services:
     buildCommand: pip install -r packages/pipeline/requirements.txt
     startCommand: python -m consumers.silver_consumer
     rootDir: packages/pipeline
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
 
   # ── AIS ingestor — real-time background worker ──────────
   - type: worker
@@ -28,8 +28,8 @@ services:
     buildCommand: pip install -r packages/pipeline/requirements.txt
     startCommand: python -m ingestors.ais_ingestor
     rootDir: packages/pipeline
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
 
   # ── Trade data ingestor — daily cron ────────────────────
   - type: cron
@@ -39,8 +39,8 @@ services:
     buildCommand: pip install -r packages/pipeline/requirements.txt
     startCommand: python -m ingestors.trade_ingestor
     rootDir: packages/pipeline
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
 
   # ── Port activity (IMF PortWatch) — daily cron ──────────
   - type: cron
@@ -50,8 +50,8 @@ services:
     buildCommand: pip install -r packages/pipeline/requirements.txt
     startCommand: python -m ingestors.port_activity_ingestor
     rootDir: packages/pipeline
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
 
   # ── Weather ingestor — hourly cron ──────────────────────
   - type: cron
@@ -61,8 +61,8 @@ services:
     buildCommand: pip install -r packages/pipeline/requirements.txt
     startCommand: python -m ingestors.weather_ingestor
     rootDir: packages/pipeline
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
 
   # ── Freight rate ingestor — 4-hourly cron ───────────────
   - type: cron
@@ -72,8 +72,8 @@ services:
     buildCommand: pip install -r packages/pipeline/requirements.txt
     startCommand: python -m ingestors.market_ingestor
     rootDir: packages/pipeline
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
 
   # ── Financial data ingestor — daily cron ────────────────
   - type: cron
@@ -83,8 +83,8 @@ services:
     buildCommand: pip install -r packages/pipeline/requirements.txt
     startCommand: python -m ingestors.financial_ingestor
     rootDir: packages/pipeline
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
 
   # ── SDG indicator ingestor — weekly cron ────────────────
   - type: cron
@@ -94,5 +94,5 @@ services:
     buildCommand: pip install -r packages/pipeline/requirements.txt
     startCommand: python -m ingestors.sdg_ingestor
     rootDir: packages/pipeline
-    envVarGroups:
-      - sinapse-xd-env
+    envVars:
+      - fromGroup: sinapse-xd-env
