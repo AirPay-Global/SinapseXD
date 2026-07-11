@@ -81,6 +81,11 @@ export default async function CountryProfile({ params }: { params: { id: string 
     ],
     aiSummary:
       `${demo.name} anchors its AfCFTA corridor participation through ${demo.portName ?? "its gateway port"}. Country-level scoring composites (competitiveness, trade cost) are planned Gold marts — today's confidence reflects that ports and REC membership are live, but the composite index is illustrative.`,
+    healthScore: 71,
+    recommendations: [
+      { text: `Track the gateway port's Congestion Score alongside the competitiveness index — they move together.`, confidence: 0.6 },
+      { text: `Lift AfCFTA preferential utilisation on ${demo.rec} corridors — the fastest trade-cost lever available.`, confidence: 0.57 },
+    ],
   };
 
   return <ObjectProfile data={data} objectTypeLabel="Country" iconPath={COUNTRY_ICON} />;

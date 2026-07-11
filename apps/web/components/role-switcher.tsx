@@ -2,24 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-type Role = { code: string; name: string; org: string; href: string };
-
-const ROLES: Role[] = [
-  { code: "PC", name: "Port CEO", org: "Port of Durban", href: "/dashboard/port" },
-  { code: "GP", name: "Policy Director", org: "Dept. of Trade", href: "/dashboard/government" },
-  { code: "DX", name: "DFI Executive", org: "Development Bank", href: "/dashboard/dfi" },
-  { code: "AA", name: "AfCFTA Analyst", org: "AfCFTA Secretariat", href: "/dashboard/afcfta" },
-];
+import { ROLES, useRole } from "@/components/role-context";
 
 export function RoleSwitcher() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [idx, setIdx] = useState(0);
-  const role = ROLES[idx];
+  const { role, roleIndex, setRoleIndex } = useRole();
 
   function pick(i: number) {
-    setIdx(i);
+    setRoleIndex(i);
     setOpen(false);
     router.push(ROLES[i].href);
   }
@@ -28,6 +19,7 @@ export function RoleSwitcher() {
     <div className="relative border-b border-border px-3 py-3">
       <button
         onClick={() => setOpen((v) => !v)}
+        aria-label={`Switch role — currently ${role.name}, ${role.org}`}
         className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-muted"
       >
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-brand-navy text-[11px] font-bold text-white">
@@ -47,7 +39,7 @@ export function RoleSwitcher() {
             <button
               key={r.code}
               onClick={() => pick(i)}
-              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[12.5px] hover:bg-muted ${i === idx ? "text-foreground font-semibold" : "text-muted-foreground"}`}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[12.5px] hover:bg-muted ${i === roleIndex ? "text-foreground font-semibold" : "text-muted-foreground"}`}
             >
               <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-brand-navy text-[9.5px] font-bold text-white">{r.code}</span>
               <span className="min-w-0 flex-1 truncate">{r.name} <span className="text-muted-foreground">· {r.org}</span></span>

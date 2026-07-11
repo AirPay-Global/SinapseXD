@@ -13,6 +13,19 @@ export interface LineageStage {
   sources: string[];
 }
 
+/** A named data-contract check applied on the Silver→Gold path. */
+export interface ValidationRule {
+  rule: string;
+  passed: boolean;
+}
+
+/** One refresh of the underlying mart — "commit history" for the value. */
+export interface RefreshEvent {
+  at: string;
+  outcome: "ok" | "late" | "failed";
+  note?: string;
+}
+
 export interface EvidenceRecord {
   /** Human name of the value, e.g. "Congestion Score". */
   metric: string;
@@ -26,6 +39,14 @@ export interface EvidenceRecord {
   recommendation?: string;
   /** live | demo | planned — provenance honesty carried into the drawer. */
   status?: "live" | "demo" | "planned";
+  /** 0–1 data-quality score (completeness, timeliness, validity). */
+  qualityScore?: number;
+  /** Data-contract checks — "CI checks" for the value. */
+  validations?: ValidationRule[];
+  /** Recent refresh runs, newest first. */
+  refreshHistory?: RefreshEvent[];
+  /** Accountable data steward, e.g. "Pipeline · ais_ingestor". */
+  steward?: string;
 }
 
 export function confidenceBand(c: number): "high" | "medium" | "low" {

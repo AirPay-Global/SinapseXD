@@ -1,6 +1,6 @@
 import { createOntology } from "@/lib/ontology/sdk";
-import type { EvidenceRecord, LineageStage } from "@/lib/evidence/types";
-import { DecisionCentreView, type Deck, type Tile } from "./decision-view";
+import type { LineageStage } from "@/lib/evidence/types";
+import { DecisionCentreView, type Tile } from "./decision-view";
 
 const ASOF = "as of 07 Jul 2026, 14:20 UTC";
 
@@ -56,47 +56,7 @@ export default async function DecisionCentre() {
     },
   ];
 
-  const decks: Deck[] = [
-    {
-      sev: "hi", objectRef: "object · tariff:reefer @ port:durban", title: "Revenue leakage up 7% on reefer tariffs",
-      body: "Reefer plug-in fees under-billed vs manifest on 214 calls this quarter — the largest correctable loss.",
-      recommendation: "Reconcile the reefer tariff rule and back-bill; est. recovery this quarter.",
-      impactLabel: "Revenue at stake", impactValue: "$1.9M",
-      evidence: { metric: "Reefer revenue leakage", value: "$1.9M", objectRef: "object · tariff:reefer @ port:durban", asOf: "quarter to 07 Jul 2026", confidence: 0.68, status: "demo",
-        lineage: [
-          { zone: "bronze", title: "Manifests + tariff records", locator: "pillar/finance · CRM*", detail: "Billed fees vs manifested reefer plug-ins. First-party CRM source is a deferred data product.", sources: ["finance", "crm* (planned)"] },
-          { zone: "silver", title: "Reconcile billed vs due", locator: "tariff_reconciliation*", detail: "Matched 214 calls; flagged under-billed lines.", sources: ["rule-based"] },
-          { zone: "gold", title: "Revenue leakage", locator: "gold_revenue_leakage*", detail: "Sum of under-billed reefer tariff lines. Illustrative — mart not yet built.", sources: ["estimate", "planned"] },
-        ],
-        recommendation: "Reconcile the reefer tariff rule and back-bill; est. recovery $1.9M this quarter." },
-    },
-    {
-      sev: "md", objectRef: "object · customer:MSC", title: "MSC contract renewal in 12 days",
-      body: "MSC is 22% of container volume. Health score dipped as Durban’s congestion rose above peer ports.",
-      recommendation: "Open renewal with a berth-window guarantee; model a 3% rate concession vs churn risk.",
-      impactLabel: "Annual volume", impactValue: "0.62M TEU",
-      evidence: { metric: "MSC customer health", value: "62", objectRef: "object · customer:MSC", asOf: "as of 07 Jul 2026", confidence: 0.55, status: "planned",
-        lineage: [
-          { zone: "bronze", title: "CRM + volume history", locator: "CRM* · pillar/ais", detail: "First-party account data is deferred; volume proxied from AIS calls.", sources: ["crm* (planned)", "ais proxy"] },
-          { zone: "silver", title: "Enrich & score signals", locator: "customer_health*", detail: "Volume trend, congestion exposure, contract stage.", sources: ["partial data"] },
-          { zone: "gold", title: "Customer Health Score", locator: "gold_customer_health*", detail: "Composite churn-risk index. Low confidence until CRM lands.", sources: ["planned"] },
-        ],
-        recommendation: "Open renewal with a berth-window guarantee; model a 3% concession vs churn risk." },
-    },
-    {
-      sev: "gd", objectRef: "object · corridor:durban-lusaka", title: "Angola corridor growing +18%",
-      body: "Throughput on the gateway is up 18% YoY — capacity headroom exists to capture the overflow.",
-      recommendation: "Prioritise the North-South corridor slot allocation; flag to commercial for outreach.",
-      impactLabel: "Growth capture", impactValue: "+34k TEU",
-      evidence: { metric: "Corridor gateway throughput", value: "+18% YoY", objectRef: "object · corridor:durban-lusaka", asOf: "YoY to 07 Jul 2026", confidence: 0.79, status: live ? "live" : "demo",
-        lineage: [
-          { zone: "bronze", title: "PortWatch gateway activity", locator: "pillar/port_activity", detail: "Origin-port daily calls & tonnage for the corridor gateway.", sources: ["portwatch"] },
-          { zone: "silver", title: "Attribute to corridor", locator: "port_activity_daily", detail: "Joined via ont_corridor.origin_port_id (ontology link).", sources: ["ontology link"] },
-          { zone: "gold", title: "Corridor gateway activity", locator: "gold_corridor_gateway_activity", detail: "30-day throughput at the coastal gateway port.", sources: ["gateway proxy"] },
-        ],
-        recommendation: "Prioritise North-South slot allocation; flag to commercial for targeted outreach." },
-    },
-  ];
-
-  return <DecisionCentreView decks={decks} tiles={tiles} />;
+  // Decision work items are seeded client-side (lib/decisions/seed.ts) and
+  // hydrated with user actions from the decision store.
+  return <DecisionCentreView tiles={tiles} />;
 }
