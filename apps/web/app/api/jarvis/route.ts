@@ -1,25 +1,51 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
+import { getAdvisor } from "@/lib/ai/advisors";
 import { createOntology } from "@/lib/ontology/sdk";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
- * AI Jarvis — the platform's decision copilot (Design Bible §10 "AI
- * Copilot"). Server route so the Anthropic key never reaches the client.
- * Grounds every answer in a live snapshot of the ontology + pillar status so
- * Jarvis never invents numbers the platform doesn't actually have — when a
- * pillar is demo/idle, the system prompt says so and Jarvis says so too.
+ * AI advisors — the platform's specialist copilots (UI Evolution spec,
+ * Priority 2). One route serves the whole bench: the request names an advisor
+ * and the current stakeholder, and the system prompt composes the shared
+ * grounding rules with that advisor's domain lens. Server route so the
+ * Anthropic key never reaches the client. Grounds every answer in a live
+ * snapshot of the ontology + pillar status so advisors never invent numbers
+ * the platform doesn't actually have.
  */
 
 export const runtime = "nodejs";
 
-const SYSTEM_PREAMBLE = `You are AI Jarvis, the decision copilot for Sinapse XD — a trade intelligence platform for African ports, governments, DFIs, and AfCFTA institutions, built by AirPay Global Inc.
+const SYSTEM_PREAMBLE = `You are a specialist AI advisor inside Sinapse XD — a trade intelligence platform for African ports, governments, DFIs, and AfCFTA institutions, built by AirPay Global Inc.
 
 Ground rules:
 - Only speak to the data pillars and objects described in the CONTEXT block below. Never invent a specific number, vessel, or figure that isn't given to you.
 - If asked about a pillar marked "idle" or "demo", say plainly that it isn't live yet rather than fabricating a value.
 - Be concise — 2-4 sentences unless the user asks for detail. This is a decision copilot, not a report generator.
+- Stay inside your domain lens; if the question belongs to another advisor, answer briefly and name the better-suited advisor.
 - When relevant, end with a one-line recommendation or next question the user should ask.`;
+
+interface StakeholderContext {
+  stakeholder?: string;
+  name?: string;
+  org?: string;
+  country?: string;
+  port?: string | null;
+  objectives?: string;
+}
+
+function stakeholderBlock(c: StakeholderContext | undefined): string {
+  if (!c) return "";
+  const lines = [
+    "Current stakeholder:",
+    c.name && c.org ? `- User: ${c.name} at ${c.org}` : null,
+    c.stakeholder ? `- Command centre: ${c.stakeholder}` : null,
+    c.country ? `- Country focus: ${c.country}` : null,
+    c.port ? `- Home port: ${c.port}` : null,
+    c.objectives ? `- Objectives: ${c.objectives}` : null,
+  ].filter(Boolean);
+  return lines.length > 1 ? lines.join("\n") : "";
+}
 
 async function buildContext(): Promise<string> {
   const onto = await createOntology();
@@ -67,7 +93,12 @@ export async function POST(req: Request) {
   }
 
   const key = process.env.ANTHROPIC_API_KEY;
-  let body: { message?: string; history?: Array<{ role: "user" | "assistant"; content: string }> };
+  let body: {
+    message?: string;
+    history?: Array<{ role: "user" | "assistant"; content: string }>;
+    advisor?: string;
+    context?: StakeholderContext;
+  };
   try {
     body = await req.json();
   } catch {
@@ -77,11 +108,11 @@ export async function POST(req: Request) {
   if (!message) {
     return NextResponse.json({ error: "message is required" }, { status: 400 });
   }
+  const advisor = getAdvisor(body.advisor);
 
   if (!key) {
     return NextResponse.json({
-      reply:
-        "Jarvis isn't live yet — ANTHROPIC_API_KEY isn't set in this environment, so I can't reach Claude. Once it's added to the Render environment group, I'll answer using the platform's live ontology and pillar data.",
+      reply: `The ${advisor.name} isn't live yet — ANTHROPIC_API_KEY isn't set in this environment, so I can't reach Claude. Once it's added to the Render environment group, I'll answer using the platform's live ontology and pillar data.`,
       status: "demo",
     });
   }
@@ -90,10 +121,18 @@ export async function POST(req: Request) {
     const context = await buildContext();
     const client = new Anthropic({ apiKey: key });
     const history = (body.history ?? []).slice(-8); // keep the request small
+    const system = [
+      SYSTEM_PREAMBLE,
+      `YOUR DOMAIN LENS:\n${advisor.focus}`,
+      stakeholderBlock(body.context),
+      `CONTEXT:\n${context}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
     const response = await client.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 500,
-      system: `${SYSTEM_PREAMBLE}\n\nCONTEXT:\n${context}`,
+      system,
       messages: [...history, { role: "user" as const, content: message }],
     });
     const reply = response.content
@@ -102,9 +141,9 @@ export async function POST(req: Request) {
       .join("\n");
     return NextResponse.json({ reply, status: "live" });
   } catch (err) {
-    console.error("Jarvis request failed", err);
+    console.error("Advisor request failed", err);
     return NextResponse.json(
-      { reply: "Jarvis hit an error reaching Claude — try again in a moment.", status: "down" },
+      { reply: `The ${advisor.name} hit an error reaching Claude — try again in a moment.`, status: "down" },
       { status: 200 },
     );
   }

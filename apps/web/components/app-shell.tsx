@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { DecisionProvider } from "@/components/decisions/decision-store";
 import { EvidenceProvider } from "@/components/evidence/evidence-drawer";
+import { RoleProvider } from "@/components/role-context";
 import { RoleSwitcher } from "@/components/role-switcher";
 
 /**
@@ -30,7 +31,7 @@ const NAV: Group[] = [
     items: [
       { href: "/decision", label: "Decision Centre", icon: I("M3 12h4l3 8 4-16 3 8h4") },
       { href: "/stakeholders", label: "Stakeholders", badge: "14", icon: I("M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75") },
-      { href: "/jarvis", label: "AI Jarvis", icon: I("M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9z") },
+      { href: "/jarvis", label: "AI Advisors", badge: "13", icon: I("M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9z") },
     ],
   },
   {
@@ -85,6 +86,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <EvidenceProvider>
       <DecisionProvider>
+      <RoleProvider>
       <div className="grid h-screen grid-cols-1 md:grid-cols-[248px_1fr]">
         {/* Sidebar */}
         <aside className="hidden min-h-0 flex-col border-r border-border bg-card md:flex">
@@ -136,6 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="min-h-0 flex-1 overflow-y-auto px-6 py-7 lg:px-9">{children}</main>
         </div>
       </div>
+      </RoleProvider>
       </DecisionProvider>
     </EvidenceProvider>
   );

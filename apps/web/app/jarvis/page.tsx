@@ -4,7 +4,7 @@ import { JarvisView } from "./jarvis-view";
 export default function JarvisPage() {
   return (
     <div>
-      <PageHeader title="AI Jarvis" subtitle="Your Sinapse decision copilot — grounded in live platform data, honest about what isn't." />
+      <PageHeader title="AI Advisors" subtitle="Thirteen domain specialists, each grounded in your stakeholder context and live platform data — honest about what isn't live." />
       <JarvisView />
     </div>
   );
