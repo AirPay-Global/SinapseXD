@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { createOntology } from "@/lib/ontology/sdk";
+import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
  * AI Jarvis — the platform's decision copilot (Design Bible §10 "AI
@@ -43,7 +44,28 @@ async function buildContext(): Promise<string> {
   ].join("\n");
 }
 
+// Jarvis calls a paid, latency-bearing model per request — tighter than a
+// typical read endpoint. 10 requests/minute is generous for one human
+// chatting, not for a script.
+const RATE_LIMIT = { limit: 10, windowSeconds: 60 };
+
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const rate = await checkRateLimit("jarvis", ip, RATE_LIMIT);
+  if (!rate.success) {
+    return NextResponse.json(
+      { reply: "You're sending messages faster than Jarvis can keep up — please wait a moment and try again.", status: "limited" },
+      {
+        status: 429,
+        headers: {
+          "X-RateLimit-Limit": String(rate.limit),
+          "X-RateLimit-Remaining": String(rate.remaining),
+          "Retry-After": String(Math.max(1, Math.ceil((rate.reset - Date.now()) / 1000))),
+        },
+      },
+    );
+  }
+
   const key = process.env.ANTHROPIC_API_KEY;
   let body: { message?: string; history?: Array<{ role: "user" | "assistant"; content: string }> };
   try {

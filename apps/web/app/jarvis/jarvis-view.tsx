@@ -6,7 +6,7 @@ type Role = "user" | "assistant";
 interface ChatMessage {
   role: Role;
   content: string;
-  status?: "live" | "demo" | "down";
+  status?: "live" | "demo" | "down" | "limited";
 }
 
 const SUGGESTIONS = [
@@ -16,11 +16,12 @@ const SUGGESTIONS = [
   "What should I look at first as a new DFI analyst?",
 ];
 
-const STATUS_LABEL: Record<string, string> = { live: "Live · Claude", demo: "Demo", down: "Error" };
+const STATUS_LABEL: Record<string, string> = { live: "Live · Claude", demo: "Demo", down: "Error", limited: "Rate limited" };
 const STATUS_CLASS: Record<string, string> = {
   live: "bg-success/10 text-success",
   demo: "border border-border text-muted-foreground",
   down: "bg-destructive/10 text-destructive",
+  limited: "bg-warning/10 text-warning",
 };
 
 export function JarvisView() {
