@@ -19,6 +19,7 @@ export function RoleSwitcher() {
     <div className="relative border-b border-border px-3 py-3">
       <button
         onClick={() => setOpen((v) => !v)}
+        aria-label={`Switch role — currently ${role.name}, ${role.org}`}
         className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-muted"
       >
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-brand-navy text-[11px] font-bold text-white">

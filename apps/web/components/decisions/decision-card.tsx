@@ -121,7 +121,7 @@ export function DecisionCard({ decision: d }: { decision: DecisionItem }) {
         <span>{d.valueAtRisk.label}<br /><b className="text-[12.5px] tabular-nums text-foreground">{d.valueAtRisk.amount}</b></span>
         <span>Confidence<br /><b className="text-[12.5px] tabular-nums text-foreground">{Math.round(d.confidence * 100)}%</b></span>
         <span>Owner<br /><b className="text-[12px] text-foreground">{d.owner.split("·")[0].trim()}</b></span>
-        <span>Due<br /><b className="text-[12px] tabular-nums text-foreground">{d.dueDate}</b></span>
+        <span>Due<br /><b className="whitespace-nowrap text-[12px] tabular-nums text-foreground">{d.dueDate}</b></span>
       </div>
 
       {panel && (

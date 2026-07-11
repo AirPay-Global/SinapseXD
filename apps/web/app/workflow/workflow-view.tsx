@@ -58,7 +58,8 @@ export function WorkflowView() {
       </div>
 
       <div className="overflow-x-auto pb-2">
-        <div className="grid min-w-[1280px] grid-cols-8 gap-2.5">
+        {/* 8 × ~136px fits a 1440px desktop with the sidebar; narrower screens scroll. */}
+        <div className="grid min-w-[1100px] grid-cols-8 gap-2.5">
           {LIFECYCLE_STAGES.map((s) => {
             const items = decisions.filter((d) => d.stage === s);
             return (
