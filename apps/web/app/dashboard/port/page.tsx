@@ -2,11 +2,30 @@ import { demoFeed } from "@/lib/feed";
 import { createOntology } from "@/lib/ontology/sdk";
 import { pivotThroughput } from "@/lib/ontology/types";
 import { COMMODITIES, PORTS, portKpis, throughputByCommodity, vesselQueue } from "@/lib/demo-data";
+import type { PortOption } from "@/components/port-selector";
 import { PortView } from "./port-view";
 
-export default async function PortDashboard() {
-  const port = PORTS[0]; // Durban — port selector wires in with auth/orgs
+export default async function PortDashboard({ searchParams }: { searchParams: { port?: string } }) {
   const onto = await createOntology();
+
+  // Port registry: ontology first (grows automatically as ont_port is
+  // seeded), demo list only when the DB is unreachable. Country names for
+  // live ports come from the country link; fall back to the ISO3 code.
+  const livePorts = await onto.ports.list();
+  const liveCountries = livePorts.length ? await onto.countries.list() : [];
+  const ports: Array<PortOption & { lat: number; lng: number }> = livePorts.length
+    ? livePorts.map((p) => ({
+        id: p.id,
+        name: p.name,
+        country: liveCountries.find((c) => c.id === p.countryId)?.name ?? p.countryId,
+        lat: p.lat,
+        lng: p.lng,
+      }))
+    : PORTS.map((p) => ({ id: p.id, name: p.name, country: p.country, lat: p.lat, lng: p.lng }));
+
+  // Selection via ?port= — unknown/absent ids fall back to the first port,
+  // so a stale bookmark never 404s or crashes the view.
+  const port = ports.find((p) => p.id === searchParams.port) ?? ports[0];
 
   // Live PortWatch-backed surfaces — fall back to demo when the mart is empty
   // (DB not provisioned / PORTWATCH_ENABLED off / no auth session).
@@ -24,6 +43,8 @@ export default async function PortDashboard() {
 
   return (
     <PortView
+      port={port}
+      ports={ports}
       portCallsValue={portCallsValue}
       portCallsLive={portCallsLive}
       portCallsFeed={portCallsLive ? activity.feed : demoFeed()}

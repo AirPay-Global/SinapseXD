@@ -213,11 +213,13 @@ export function portKpis(portId = "durban") {
   const arrivals = calls.reduce((s, c) => s + c.arrivals, 0);
   const queue = vesselQueue(portId);
   const conditions = marineConditions().find((c) => c.portId === portId);
+  // Seeded per port so every port renders distinct (but stable) demo values.
+  const r = rng(portId.length * 15013 + 29);
   return {
     portCalls30d: arrivals,
-    vesselsInbound: queue.filter((v) => v.status !== "moored").length,
-    avgWaitHours: 18.4,
-    throughputTeu30d: 214_600,
+    vesselsInbound: 8 + Math.floor(r() * 9),
+    avgWaitHours: Math.round((12 + r() * 14) * 10) / 10,
+    throughputTeu30d: Math.round((90_000 + r() * 180_000) / 100) * 100,
     disruptionRisk: conditions?.disruptionRisk ?? "low",
   };
 }

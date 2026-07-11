@@ -8,11 +8,14 @@ import { VesselMap } from "@/components/maps/vessel-map";
 import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
 import { demoFeed } from "@/lib/feed";
 import { quickEvidence } from "@/lib/evidence/build";
-import { PORTS, marineConditions, portCalls30d, portKpis, vesselQueue } from "@/lib/demo-data";
+import { marineConditions, portCalls30d, portKpis, vesselQueue } from "@/lib/demo-data";
+import { PortSelector, type PortOption } from "@/components/port-selector";
 
 const nf = new Intl.NumberFormat("en-US");
 
 export interface PortViewProps {
+  port: PortOption & { lat: number; lng: number };
+  ports: PortOption[];
   portCallsValue: number;
   portCallsLive: boolean;
   portCallsFeed: PillarFeed;
@@ -34,11 +37,11 @@ export interface PortViewProps {
   };
 }
 
-export function PortView({ portCallsValue, portCallsLive, portCallsFeed, throughput, vessels, conditions }: PortViewProps) {
-  const port = PORTS[0]; // Durban — port selector wires in with auth/orgs
+export function PortView({ port, ports, portCallsValue, portCallsLive, portCallsFeed, throughput, vessels, conditions }: PortViewProps) {
   const kpis = portKpis(port.id);
+  const objectRef = `object · port:${port.id}`;
   const queue = (vessels.data.length ? vessels.data : vesselQueue(port.id)).slice(0, 8);
-  const demoConditions = marineConditions().find((c) => c.portId === port.id)!;
+  const demoConditions = marineConditions().find((c) => c.portId === port.id) ?? marineConditions()[0];
   const waveHeightM = conditions.isLive ? conditions.data!.wave_height_m : demoConditions.waveHeightM;
   const windSpeedKn = conditions.isLive ? conditions.data!.wind_speed_kn : demoConditions.windSpeedKn;
 
@@ -48,10 +51,13 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
 
   return (
     <>
-      <PageHeader
-        title={`Port Operations — ${port.name}`}
-        subtitle="Live intelligence from AIS, weather, and trade pillars"
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader
+          title={`Port Operations — ${port.name}`}
+          subtitle="Live intelligence from AIS, weather, and trade pillars"
+        />
+        <PortSelector ports={ports} selectedId={port.id} />
+      </div>
 
       {/* Hero: the operational headline — anchorage pressure — leads the view,
           supporting KPIs sit at a lower weight beside it. */}
@@ -63,7 +69,7 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
           delta={{ text: "1.8h vs prior 30d", direction: "down", positive: true }}
           context={`${kpis.vesselsInbound} vessels inbound · next arrival in 2h`}
           feed={aisFeed}
-          evidence={quickEvidence({ metric: "Avg anchorage wait", value: `${kpis.avgWaitHours} hours`, objectRef: "object · port:durban", confidence: 0.74, status: "demo", pillar: "AIS & Vessels", source: "ais", gold: "gold_port_congestion*", recommendation: "Shift two Panamax windows off the Thursday swell peak to hold wait under 18h." })}
+          evidence={quickEvidence({ metric: "Avg anchorage wait", value: `${kpis.avgWaitHours} hours`, objectRef: objectRef, confidence: 0.74, status: "demo", pillar: "AIS & Vessels", source: "ais", gold: "gold_port_congestion*", recommendation: "Shift two Panamax windows off the Thursday swell peak to hold wait under 18h." })}
         />
         <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2">
           <StatCard
@@ -72,23 +78,23 @@ export function PortView({ portCallsValue, portCallsLive, portCallsFeed, through
             delta={portCallsLive ? undefined : { text: "4.2% vs prior 30d", direction: "up", positive: true }}
             subtitle={portCallsLive ? port.name : undefined}
             feed={portCallsFeed}
-            evidence={quickEvidence({ metric: "Port calls (30 days)", value: nf.format(portCallsValue), objectRef: "object · port:durban", confidence: portCallsLive ? 0.95 : 0.4, status: portCallsLive ? "live" : "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_port_activity_30d" })}
+            evidence={quickEvidence({ metric: "Port calls (30 days)", value: nf.format(portCallsValue), objectRef: objectRef, confidence: portCallsLive ? 0.95 : 0.4, status: portCallsLive ? "live" : "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_port_activity_30d" })}
           />
           <StatCard label="Vessels inbound" value={String(vessels.isLive ? vessels.data.length : kpis.vesselsInbound)} subtitle={vessels.isLive ? "Live AIS positions" : "Next arrival in 2h"} feed={vessels.feed}
-            evidence={quickEvidence({ metric: "Vessels inbound", value: String(vessels.isLive ? vessels.data.length : kpis.vesselsInbound), objectRef: "object · port:durban", confidence: vessels.isLive ? 0.85 : 0.5, status: vessels.isLive ? "live" : "demo", pillar: "AIS & Vessels", source: "ais", silver: "vessel_positions", gold: vessels.isLive ? "vessel_positions (live)" : "gold_vessel_queue*" })}
+            evidence={quickEvidence({ metric: "Vessels inbound", value: String(vessels.isLive ? vessels.data.length : kpis.vesselsInbound), objectRef: objectRef, confidence: vessels.isLive ? 0.85 : 0.5, status: vessels.isLive ? "live" : "demo", pillar: "AIS & Vessels", source: "ais", silver: "vessel_positions", gold: vessels.isLive ? "vessel_positions (live)" : "gold_vessel_queue*" })}
           />
           <StatCard
             label="Throughput (30 days)"
             value={`${nf.format(kpis.throughputTeu30d)} TEU`}
             delta={{ text: "2.9% vs prior 30d", direction: "up", positive: true }}
             feed={aisFeed}
-            evidence={quickEvidence({ metric: "Throughput (30 days)", value: `${nf.format(kpis.throughputTeu30d)} TEU`, objectRef: "object · port:durban", confidence: 0.6, status: "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_port_activity_30d" })}
+            evidence={quickEvidence({ metric: "Throughput (30 days)", value: `${nf.format(kpis.throughputTeu30d)} TEU`, objectRef: objectRef, confidence: 0.6, status: "demo", pillar: "Port Activity", source: "portwatch", silver: "port_activity_daily", gold: "gold_port_activity_30d" })}
           />
         </div>
       </div>
 
       <div className="mt-6">
-        <InsightPanel insight="Container arrivals at Durban are trending 4% above the 30-day average while anchorage wait times fall — berth productivity gains are absorbing the extra volume. Watch the moderate swell forecast for Thursday: two Panamax arrivals may shift ETAs by 6–10 hours." />
+        <InsightPanel insight={`Container arrivals at ${port.name} are trending 4% above the 30-day average while anchorage wait times fall — berth productivity gains are absorbing the extra volume. Watch the moderate swell forecast for Thursday: two Panamax arrivals may shift ETAs by 6–10 hours.`} />
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
