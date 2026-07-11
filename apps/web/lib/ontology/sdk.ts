@@ -4,7 +4,7 @@ import type { Corridor, Country, PillarFeed, Port, VesselPosition, VesselStatus 
 import { ONTOLOGY, ONTOLOGY_MARTS } from "@sinapse/shared";
 import { createClient } from "@/lib/supabase/server";
 import { downFeed, liveFeed } from "@/lib/feed";
-import type { CorridorGateway, CorridorTradeFlow, MarineConditions, PortActivity30d, ThroughputRow } from "./types";
+import type { CorridorGateway, CorridorTradeFlow, EconomicIndicator, FreightRate, MarineConditions, PortActivity30d, SdgReading, ThroughputRow } from "./types";
 
 /**
  * The Ontology SDK — typed, definition-driven object access over the ontology
@@ -87,6 +87,59 @@ export async function createOntology() {
     /** Link: country → its ports (one-to-many). */
     ports: (iso3: string) =>
       many(ONTOLOGY.port.table, toPort, ONTOLOGY.country.links[0].via, iso3),
+
+    /** Latest SDG 8/9/10/17 readings for a country (gold_sdg_latest). */
+    async sdgIndicators(iso3: string): Promise<{ data: SdgReading[]; feed: PillarFeed }> {
+      if (!supabase) return { data: [], feed: downFeed() };
+      try {
+        const { data, error } = await supabase
+          .from("gold_sdg_latest")
+          .select("*")
+          .eq("country", iso3)
+          .order("goal", { ascending: true });
+        if (error || !data || data.length === 0) return { data: [], feed: downFeed() };
+        return { data: data as SdgReading[], feed: liveFeed() };
+      } catch {
+        return { data: [], feed: downFeed() };
+      }
+    },
+
+    /** Latest economic indicators for a country (gold_economic_latest). */
+    async economicIndicators(iso3: string): Promise<{ data: EconomicIndicator[]; feed: PillarFeed }> {
+      if (!supabase) return { data: [], feed: downFeed() };
+      try {
+        const { data, error } = await supabase
+          .from("gold_economic_latest")
+          .select("*")
+          .eq("country", iso3);
+        if (error || !data || data.length === 0) return { data: [], feed: downFeed() };
+        return { data: data as EconomicIndicator[], feed: liveFeed() };
+      } catch {
+        return { data: [], feed: downFeed() };
+      }
+    },
+  };
+
+  /** Global freight-market benchmark (Freightos Baltic Index) — a macro
+   * indicator, not a corridor- or port-specific rate. See
+   * providers/freightos.py for the honest scope note. */
+  const market = {
+    async freightIndex(route = "global-container-composite"): Promise<{ data: FreightRate | null; feed: PillarFeed }> {
+      if (!supabase) return { data: null, feed: downFeed() };
+      try {
+        const { data, error } = await supabase
+          .from("freight_rates")
+          .select("route, ts, rate_usd, index_source")
+          .eq("route", route)
+          .order("ts", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error || !data) return { data: null, feed: downFeed() };
+        return { data: data as FreightRate, feed: liveFeed((data as FreightRate).ts) };
+      } catch {
+        return { data: null, feed: downFeed() };
+      }
+    },
   };
 
   const ports = {
@@ -227,5 +280,5 @@ export async function createOntology() {
     },
   };
 
-  return { countries, ports, corridors };
+  return { countries, ports, corridors, market };
 }

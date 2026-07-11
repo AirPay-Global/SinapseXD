@@ -208,10 +208,105 @@ def handle_marine_conditions(conn: Connection, rec: dict) -> None:
     )
 
 
+def handle_freight_rate(conn: Connection, rec: dict) -> None:
+    """Upsert a Freightos Baltic Index reading.
+
+    Idempotency key: (route, ts, index_source). `route` here is a global FBX
+    index label, not a port-to-port lane — see providers/freightos.py's
+    module doc on scope.
+    """
+    route = str(rec.get("route") or "").strip()
+    ts = rec.get("dateIso")
+    if not route or not ts:
+        return
+    conn.execute(
+        """
+        insert into freight_rates (route, ts, rate_usd, index_source)
+        values (%(route)s, %(ts)s, %(rate_usd)s, %(index_source)s)
+        on conflict (route, ts, index_source) do update set
+          rate_usd = excluded.rate_usd
+        """,
+        {
+            "route": route,
+            "ts": ts,
+            "rate_usd": rec.get("rateUsd", 0) or 0,
+            "index_source": rec.get("indexSource", "freightos"),
+        },
+    )
+
+
+def handle_economic_indicator(conn: Connection, rec: dict) -> None:
+    """Upsert a World Bank economic-indicator reading.
+
+    Idempotency key: (country, indicator, year, source). `country` is loosely
+    ontology-keyed (ISO3, matching ont_country.id) but not FK-enforced —
+    World Bank covers countries outside our pilot registry.
+    """
+    country = str(rec.get("country") or "").strip().upper()
+    indicator = str(rec.get("indicator") or "").strip()
+    year = rec.get("year")
+    if not country or not indicator or not year or rec.get("value") is None:
+        return
+    conn.execute(
+        """
+        insert into economic_indicators (country, indicator, value, unit, year, source)
+        values (%(country)s, %(indicator)s, %(value)s, %(unit)s, %(year)s, %(source)s)
+        on conflict (country, indicator, year, source) do update set
+          value = excluded.value,
+          unit  = excluded.unit
+        """,
+        {
+            "country": country,
+            "indicator": indicator,
+            "value": rec.get("value"),
+            "unit": rec.get("unit"),
+            "year": int(year),
+            "source": rec.get("source", "worldbank"),
+        },
+    )
+
+
+def handle_sdg_indicator(conn: Connection, rec: dict) -> None:
+    """Upsert a UN SDG indicator reading.
+
+    Idempotency key: (country, indicator_code, year). `country` is loosely
+    ontology-keyed (ISO3) but not FK-enforced, same rationale as economic
+    indicators.
+    """
+    country = str(rec.get("country") or "").strip().upper()
+    indicator_code = str(rec.get("indicatorCode") or "").strip()
+    goal = rec.get("goal")
+    year = rec.get("year")
+    if not country or not indicator_code or not goal or not year or rec.get("value") is None:
+        return
+    conn.execute(
+        """
+        insert into sdg_indicators (country, goal, indicator_code, value, target, year, source)
+        values (%(country)s, %(goal)s, %(indicator_code)s, %(value)s, %(target)s, %(year)s, %(source)s)
+        on conflict (country, indicator_code, year) do update set
+          value  = excluded.value,
+          target = excluded.target,
+          goal   = excluded.goal
+        """,
+        {
+            "country": country,
+            "goal": int(goal),
+            "indicator_code": indicator_code,
+            "value": rec.get("value"),
+            "target": rec.get("target"),
+            "year": int(year),
+            "source": rec.get("source", "un-sdg-api"),
+        },
+    )
+
+
 # queue name → handler
 HANDLERS: dict[str, Handler] = {
     "port.activity.daily": handle_port_activity,
     "ais.vessel.positions": handle_vessel_position,
     "trade.corridor.flows": handle_trade_flow,
     "weather.marine.forecast": handle_marine_conditions,
+    "market.freight.rates": handle_freight_rate,
+    "financial.port.data": handle_economic_indicator,
+    "sdg.indicators": handle_sdg_indicator,
 }

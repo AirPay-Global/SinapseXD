@@ -47,6 +47,32 @@ export interface MarineConditions {
   disruption_risk: string | null;
 }
 
+export interface FreightRate {
+  route: string;
+  ts: string;
+  rate_usd: number;
+  index_source: string;
+}
+
+export interface EconomicIndicator {
+  country: string;
+  indicator: string;
+  value: number;
+  unit: string | null;
+  year: number;
+  source: string;
+}
+
+export interface SdgReading {
+  country: string;
+  goal: number;
+  indicator_code: string;
+  value: number;
+  target: number | null;
+  year: number;
+  source: string;
+}
+
 // Vessel class → label, mirroring the ont_commodity seed (migration 0002).
 export const VESSEL_CLASS_LABEL: Record<string, string> = {
   container: "Containers",

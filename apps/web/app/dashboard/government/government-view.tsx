@@ -7,7 +7,7 @@ import { InsightPanel } from "@/components/intelligence/insight-panel";
 import { ChartCard, HeroStat, StatCard } from "@/components/ui/stat-card";
 import { demoFeed } from "@/lib/feed";
 import { quickEvidence } from "@/lib/evidence/build";
-import type { CorridorGateway } from "@/lib/ontology/types";
+import type { CorridorGateway, FreightRate } from "@/lib/ontology/types";
 import { FREIGHT_ROUTES, corridorFlows, freightRates90d } from "@/lib/demo-data";
 
 const nf = new Intl.NumberFormat("en-US");
@@ -15,8 +15,10 @@ const usd = (v: number) => (v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : `$${(v / 1e
 
 export function GovernmentView({
   corridor,
+  freight,
 }: {
   corridor: { data: CorridorGateway[]; feed: PillarFeed };
+  freight: { data: FreightRate | null; feed: PillarFeed };
 }) {
   const flows = corridorFlows().sort((a, b) => b.throughputTeu - a.throughputTeu);
   const totalValue = flows.reduce((s, f) => s + f.tradeValueUsd, 0);
@@ -96,7 +98,16 @@ export function GovernmentView({
           />
         </ChartCard>
 
-        <ChartCard title="Container freight rates" subtitle="USD per FEU, last 90 days (FBX)" pillar="Market Intel" feed={demoFeed()}>
+        <ChartCard
+          title="Container freight rates"
+          subtitle={
+            freight.data
+              ? `Illustrative lane detail below (demo) · live FBX global composite: $${nf.format(Math.round(freight.data.rate_usd))}`
+              : "USD per FEU, last 90 days (FBX) — illustrative lane detail"
+          }
+          pillar="Market Intel"
+          feed={freight.data ? freight.feed : demoFeed()}
+        >
           <TrendLines
             data={rateRows}
             xKey="date"

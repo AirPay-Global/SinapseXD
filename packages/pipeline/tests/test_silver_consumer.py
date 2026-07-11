@@ -61,6 +61,8 @@ def db():
     _psql(file=MIGRATIONS / "0007_ais_vessel_positions.sql")
     _psql(file=MIGRATIONS / "0008_silver_trade_flows.sql")
     _psql(file=MIGRATIONS / "0009_marine_conditions_ontology.sql")
+    _psql(file=MIGRATIONS / "0010_ai_briefings_ontology.sql")
+    _psql(file=MIGRATIONS / "0011_gold_sdg_and_economic.sql")
     conn = psycopg.connect(DSN)
     yield conn
     conn.close()
@@ -277,4 +279,91 @@ def test_marine_conditions_lands_ontology_keyed_and_idempotent(db):
     assert consumer.drain_once() == 1
     with db.cursor() as cur:
         cur.execute("select count(*) from marine_conditions where ont_port_id = 'durban'")
+        assert cur.fetchone()[0] == 1
+
+
+def test_freight_rate_lands_and_idempotent(db):
+    import fakeredis
+
+    from consumers import SilverConsumer
+    from ingestors.providers.freightos import FreightosProvider
+
+    redis_client = fakeredis.FakeStrictRedis()
+    queue = "market.freight.rates"
+
+    raw = {"value": 1850.5, "date": "2026-07-09", "_route": "global-container-composite"}
+    record = FreightosProvider.normalise(raw)
+    _enqueue(redis_client, queue, record)
+
+    consumer = SilverConsumer(redis_client, db, queues=[queue])
+    assert consumer.drain_once() == 1
+
+    with db.cursor() as cur:
+        cur.execute(
+            "select rate_usd from freight_rates where route = 'global-container-composite' "
+            "and ts = '2026-07-09' and index_source = 'freightos'"
+        )
+        assert float(cur.fetchone()[0]) == 1850.5
+
+    _enqueue(redis_client, queue, record)
+    assert consumer.drain_once() == 1
+    with db.cursor() as cur:
+        cur.execute("select count(*) from freight_rates where route = 'global-container-composite'")
+        assert cur.fetchone()[0] == 1
+
+
+def test_economic_indicator_lands_and_feeds_gold_latest(db):
+    import fakeredis
+
+    from consumers import SilverConsumer
+    from ingestors.providers.worldbank import WorldBankProvider
+
+    redis_client = fakeredis.FakeStrictRedis()
+    queue = "financial.port.data"
+
+    older = WorldBankProvider.normalise({"countryiso3code": "zaf", "_label": "gdp_usd", "value": 400e9, "date": "2023"})
+    newer = WorldBankProvider.normalise({"countryiso3code": "zaf", "_label": "gdp_usd", "value": 420e9, "date": "2024"})
+    for rec in (older, newer):
+        _enqueue(redis_client, queue, rec)
+
+    consumer = SilverConsumer(redis_client, db, queues=[queue])
+    assert consumer.drain_once() == 2
+
+    with db.cursor() as cur:
+        cur.execute("select value, year from gold_economic_latest where country = 'ZAF' and indicator = 'gdp_usd'")
+        value, year = cur.fetchone()
+    assert year == 2024
+    assert float(value) == 420e9
+
+    _enqueue(redis_client, queue, newer)
+    assert consumer.drain_once() == 1
+    with db.cursor() as cur:
+        cur.execute("select count(*) from economic_indicators where country = 'ZAF' and indicator = 'gdp_usd'")
+        assert cur.fetchone()[0] == 2  # 2023 + 2024, no duplicate of either
+
+
+def test_sdg_indicator_lands_and_feeds_gold_latest(db):
+    import fakeredis
+
+    from consumers import SilverConsumer
+    from ingestors.providers.unsdg import UnSdgProvider
+
+    redis_client = fakeredis.FakeStrictRedis()
+    queue = "sdg.indicators"
+
+    raw = {"_iso3": "KEN", "_goal": 8, "_indicatorCode": "8.1.1", "value": "3.4", "timePeriodStart": 2024}
+    record = UnSdgProvider.normalise(raw)
+    _enqueue(redis_client, queue, record)
+
+    consumer = SilverConsumer(redis_client, db, queues=[queue])
+    assert consumer.drain_once() == 1
+
+    with db.cursor() as cur:
+        cur.execute("select value from gold_sdg_latest where country = 'KEN' and indicator_code = '8.1.1'")
+        assert float(cur.fetchone()[0]) == 3.4
+
+    _enqueue(redis_client, queue, record)
+    assert consumer.drain_once() == 1
+    with db.cursor() as cur:
+        cur.execute("select count(*) from sdg_indicators where country = 'KEN' and indicator_code = '8.1.1'")
         assert cur.fetchone()[0] == 1

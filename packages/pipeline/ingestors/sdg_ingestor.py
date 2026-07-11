@@ -1,28 +1,37 @@
-"""UN SDG indicator data (weekly).
+"""UN SDG indicator data for goals 8/9/10/17 (weekly).
 
-Pillar ingestor stub — fetch() wires to the live API once credentials are
-provisioned (see API_REGISTRATIONS.md). Queue: `sdg.indicators`.
+Queue: `sdg.indicators`. Free, keyless public API — no credential
+provisioning needed, unlike AIS/Trade/Market; this pillar is live as soon as
+the worker is deployed.
 """
 from __future__ import annotations
 
 import logging
+import os
 
 from .base_ingestor import BaseIngestor
+from .providers.unsdg import UnSdgProvider
 
 logger = logging.getLogger(__name__)
 
 
 class SdgIngestor(BaseIngestor):
     queue_name = "sdg.indicators"
+    pillar = "sdg"
+
+    def __init__(self) -> None:
+        provider = os.environ.get("SDG_PROVIDER", "un-sdg-api").lower()
+        if provider == "un-sdg-api":
+            self.provider = UnSdgProvider()
+        else:
+            raise ValueError(f"Unknown SDG_PROVIDER: {provider!r} (only 'un-sdg-api' wired so far)")
+        self.source = provider
 
     def fetch(self) -> list[dict]:
-        # TODO: call the external API with the key from the environment
-        # (no key required — public API).
-        logger.warning("%s: fetch() not yet wired to live API", type(self).__name__)
-        return []
+        return self.provider.fetch()
 
     def normalise(self, raw: dict) -> dict:
-        return raw
+        return self.provider.normalise(raw)
 
 
 if __name__ == "__main__":

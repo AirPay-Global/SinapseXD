@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createOntology } from "@/lib/ontology/sdk";
 import { ObjectProfile, type ProfileData } from "@/components/ontology/object-profile";
+import { getCorridorBriefing } from "@/lib/intelligence/corridor-briefing";
 
 const ASOF = "as of 07 Jul 2026, 14:20 UTC";
 const CORRIDOR_ICON = "M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4M18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4M8 17h6a3 3 0 0 0 3-3V9";
@@ -95,6 +96,17 @@ export default async function CorridorProfile({ params }: { params: { id: string
       { time: "02 Jul", text: "Corridor gateway activity mart refreshed" },
     ],
     aiSummary:
+      (await getCorridorBriefing({
+        corridorId: id,
+        corridorName: corridor?.name ?? demo.name,
+        originPortName: demo.originName,
+        destinationName: demo.destinationName,
+        countries: demo.countries,
+        gatewayPortCalls30d: live ? row!.port_calls_30d : null,
+        gatewayThroughputTons30d: live ? row!.throughput_tons_30d : null,
+        tradeValueUsdLatest: tradeLive ? trade!.trade_value_usd_latest : null,
+        tradeValuePeriod: tradeLive ? trade!.latest_period : null,
+      })) ??
       `The ${demo.name} corridor runs from ${demo.originName}'s coastal gateway to ${demo.destinationName}. Gateway throughput is a proxy for corridor activity — true end-to-end flow (transit time, customs dwell, landed cost) needs the Customs and Rail data products, both deferred. Treat the Corridor Performance Index as illustrative until those land.`,
   };
 
