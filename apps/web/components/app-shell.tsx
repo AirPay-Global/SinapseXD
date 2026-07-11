@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { CommandPalette } from "@/components/command-palette";
 import { DecisionProvider } from "@/components/decisions/decision-store";
 import { EvidenceProvider } from "@/components/evidence/evidence-drawer";
 import { RoleProvider } from "@/components/role-context";
 import { RoleSwitcher } from "@/components/role-switcher";
 
 /**
- * Decision OS shell (Design Bible §3). Decision-first, dual-navigation:
- * decisions and stakeholder command centres up top, the ontology/intelligence/
- * evidence lenses below. The 4 existing dashboards are reframed here as
- * Stakeholder Command Centres. Everything renders inside the EvidenceProvider
- * so any value on any screen can open the evidence drawer.
+ * Decision OS shell (Design Bible §3, UI Evolution spec Navigation).
+ * Decision-first, dual-navigation: the decision loop (decide → workflow →
+ * simulate) up top, stakeholder command centres and the ontology/
+ * intelligence/evidence lenses below, plus ⌘K universal object search.
+ * Everything renders inside the EvidenceProvider so any value on any screen
+ * can open the evidence drawer.
  */
 
 type Item = { href?: string; label: string; icon: JSX.Element; soon?: boolean; badge?: string };
@@ -30,6 +32,8 @@ const NAV: Group[] = [
     heading: "Decide",
     items: [
       { href: "/decision", label: "Decision Centre", icon: I("M3 12h4l3 8 4-16 3 8h4") },
+      { href: "/workflow", label: "Workflow Centre", icon: I("M4 6h6v6H4zM14 12h6v6h-6zM10 9h7M17 9v3") },
+      { href: "/simulation", label: "Simulation Centre", icon: I("M4 4h16v12H4zM8 14l3-3 2 2 5-5M8 20h8") },
       { href: "/stakeholders", label: "Stakeholders", badge: "14", icon: I("M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75") },
       { href: "/jarvis", label: "AI Advisors", badge: "13", icon: I("M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9z") },
     ],
@@ -47,10 +51,10 @@ const NAV: Group[] = [
     heading: "Explore",
     items: [
       { href: "/ontology", label: "Ontology Explorer", badge: "14", icon: I("M12 7V5M8 15l3-3M16 15l-3-3M12 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M5 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M19 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3") },
-      { label: "Intelligence Centre", soon: true, icon: I("M4 4h16v12H4zM8 14l3-3 2 2 5-5") },
+      { href: "/intelligence", label: "Intelligence Centre", icon: I("M4 4h16v12H4zM8 14l3-3 2 2 5-5") },
       { href: "/evidence", label: "Evidence Centre", icon: I("M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6zM9 12l2 2 4-4") },
       { href: "/reports/aprm", label: "APRM Reports", icon: I("M6 3h9l3 3v15H6zM15 3v3h3M8 12h8M8 16h8M8 8h4") },
-      { label: "Digital Twin", soon: true, icon: I("M12 2 3 7v10l9 5 9-5V7zM3 7l9 5 9-5M12 12v10") },
+      { href: "/twin", label: "Digital Twin", icon: I("M12 2 3 7v10l9 5 9-5V7zM3 7l9 5 9-5M12 12v10") },
     ],
   },
   {
@@ -83,6 +87,19 @@ function NavLink({ item, active }: { item: Item; active: boolean }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <EvidenceProvider>
       <DecisionProvider>
@@ -125,11 +142,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Main */}
         <div className="flex min-w-0 flex-col">
           <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-card px-5">
-            <div className="hidden items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-muted-foreground sm:flex sm:w-[380px]">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-muted-foreground transition-colors hover:border-primary/40 sm:flex sm:w-[380px]"
+            >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m21 21-4-4" /></svg>
-              <span className="flex-1 text-[13px]">Ask Sinapse…</span>
+              <span className="flex-1 text-[13px]">Search objects, decisions, screens…</span>
               <span className="rounded border border-border px-1.5 font-mono text-[10px]">⌘K</span>
-            </div>
+            </button>
             <div className="ml-auto flex items-center gap-2.5">
               <span className="rounded-full border border-border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Decision OS</span>
             </div>
@@ -138,6 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="min-h-0 flex-1 overflow-y-auto px-6 py-7 lg:px-9">{children}</main>
         </div>
       </div>
+      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
       </RoleProvider>
       </DecisionProvider>
     </EvidenceProvider>
