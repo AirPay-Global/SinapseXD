@@ -115,14 +115,30 @@ function Drawer({ record, onClose }: { record: EvidenceRecord | null; onClose: (
                 </div>
               </div>
 
-              <section className="mb-6">
-                <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Confidence</p>
-                <div className="h-2 overflow-hidden rounded-full border border-border bg-card">
-                  <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg,var(--chart-1),var(--brand-blue))" }} />
+              <section className="mb-6 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Confidence</p>
+                  <div className="h-2 overflow-hidden rounded-full border border-border bg-card">
+                    <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: "linear-gradient(90deg,var(--chart-1),var(--brand-blue))" }} />
+                  </div>
+                  <div className="mt-1.5 font-mono text-[11.5px] text-muted-foreground">
+                    {record.confidence.toFixed(2)} — {confidenceBand(record.confidence)}
+                  </div>
                 </div>
-                <div className="mt-1.5 flex justify-between font-mono text-[11.5px] text-muted-foreground">
-                  <span>{record.confidence.toFixed(2)} — {confidenceBand(record.confidence)}</span>
-                  <span>{record.lineage.length} stages · {record.status ?? "live"}</span>
+                <div>
+                  <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Quality score</p>
+                  {record.qualityScore !== undefined ? (
+                    <>
+                      <div className="h-2 overflow-hidden rounded-full border border-border bg-card">
+                        <span className="block h-full rounded-full" style={{ width: `${Math.round(record.qualityScore * 100)}%`, background: "var(--success)" }} />
+                      </div>
+                      <div className="mt-1.5 font-mono text-[11.5px] text-muted-foreground">
+                        {record.qualityScore.toFixed(2)} · {record.status ?? "live"}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="font-mono text-[11.5px] text-muted-foreground">not yet scored · {record.status ?? "live"}</div>
+                  )}
                 </div>
               </section>
 
@@ -135,6 +151,51 @@ function Drawer({ record, onClose }: { record: EvidenceRecord | null; onClose: (
                     <Stage key={i} stage={s} />
                   ))}
                 </div>
+              </section>
+
+              <section className="mb-6">
+                <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Validation rules</p>
+                {record.validations?.length ? (
+                  <div className="flex flex-col gap-1">
+                    {record.validations.map((v) => (
+                      <div key={v.rule} className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5">
+                        <span className={`grid h-4 w-4 shrink-0 place-items-center rounded-full font-mono text-[9px] font-bold text-white ${v.passed ? "bg-success" : "bg-destructive"}`}>
+                          {v.passed ? "✓" : "✕"}
+                        </span>
+                        <span className="font-mono text-[11px] text-card-foreground">{v.rule}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-md border border-dashed border-border px-2.5 py-2 font-mono text-[11px] text-muted-foreground">
+                    No data-contract checks registered for this mart yet.
+                  </p>
+                )}
+              </section>
+
+              <section className="mb-6">
+                <p className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Refresh history</p>
+                {record.refreshHistory?.length ? (
+                  <div className="flex flex-col gap-1">
+                    {record.refreshHistory.map((r, i) => (
+                      <div key={i} className="flex items-baseline gap-2 rounded-md border border-border bg-card px-2.5 py-1.5">
+                        <span className={`font-mono text-[10px] font-bold uppercase ${r.outcome === "ok" ? "text-success" : r.outcome === "late" ? "text-warning" : "text-destructive"}`}>
+                          {r.outcome}
+                        </span>
+                        <time className="font-mono text-[11px] text-muted-foreground">{r.at}</time>
+                        {r.note && <span className="min-w-0 truncate text-[11px] text-muted-foreground">{r.note}</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-md border border-dashed border-border px-2.5 py-2 font-mono text-[11px] text-muted-foreground">
+                    Refresh log starts once the pipeline runs this mart on a schedule.
+                  </p>
+                )}
+                <p className="mt-2 flex items-center justify-between font-mono text-[10.5px] text-muted-foreground">
+                  <span>Data steward</span>
+                  <span className="text-card-foreground">{record.steward ?? "unassigned"}</span>
+                </p>
               </section>
 
               {record.recommendation && (

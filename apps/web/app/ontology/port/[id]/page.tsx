@@ -77,7 +77,20 @@ export default async function PortProfile({ params }: { params: { id: string } }
       {
         name: "Port calls (30d)", value: callsValue, tone: "plain",
         evidence: { metric: "Port calls (30 days)", value: callsValue, objectRef, asOf: ASOF, confidence: live ? 0.95 : 0.4, status,
-          lineage: portActivityLineage, recommendation: "Arrivals are running ahead of the 30-day trend — watch berth productivity." },
+          lineage: portActivityLineage, recommendation: "Arrivals are running ahead of the 30-day trend — watch berth productivity.",
+          qualityScore: live ? 0.92 : 0.55,
+          steward: "Pipeline · portwatch_ingestor",
+          validations: [
+            { rule: "port_id resolves to ontology", passed: true },
+            { rule: "unique (port, date) — no duplicates", passed: true },
+            { rule: "portcalls ≥ 0", passed: true },
+            { rule: "freshness < 48h", passed: live },
+          ],
+          refreshHistory: [
+            { at: "07 Jul 06:30 UTC", outcome: live ? "ok" : "late", note: live ? "142 rows upserted" : "pipeline idle — demo values shown" },
+            { at: "06 Jul 06:30 UTC", outcome: "ok", note: "138 rows upserted" },
+            { at: "05 Jul 06:31 UTC", outcome: "ok", note: "141 rows upserted" },
+          ] },
       },
       {
         name: "Throughput (30d)", value: "214.6k TEU", tone: "plain",
@@ -92,6 +105,17 @@ export default async function PortProfile({ params }: { params: { id: string } }
     ],
     aiSummary:
       `${demo.name} is holding strong competitiveness in the region, but anchorage wait has crept up while container arrivals run above trend. Revenue leakage on reefer tariffs is the largest correctable loss this quarter. Recommended focus: berth-window productivity before the MSC renewal.`,
+    healthScore: live ? 74 : 68,
+    documents: [
+      { name: "APRM monitoring extract — Q2 2026", kind: "generated report", date: "01 Jul 2026" },
+      { name: "Berth allocation plan — July", kind: "operational plan", date: "30 Jun 2026" },
+      { name: "Published tariff schedule 2026", kind: "reference", date: "12 Jan 2026" },
+    ],
+    recommendations: [
+      { text: "Reconcile the reefer tariff rule and back-bill — the largest correctable revenue loss this quarter.", confidence: 0.68 },
+      { text: "Re-sequence two Panamax windows off the Thursday swell peak to hold anchorage wait under 18h.", confidence: 0.82 },
+      { text: "Open the MSC renewal with a berth-window guarantee before the T-12d deadline.", confidence: 0.55 },
+    ],
   };
 
   return <ObjectProfile data={data} objectTypeLabel="Port" iconPath={PORT_ICON} />;

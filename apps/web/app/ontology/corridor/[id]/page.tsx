@@ -108,6 +108,11 @@ export default async function CorridorProfile({ params }: { params: { id: string
         tradeValuePeriod: tradeLive ? trade!.latest_period : null,
       })) ??
       `The ${demo.name} corridor runs from ${demo.originName}'s coastal gateway to ${demo.destinationName}. Gateway throughput is a proxy for corridor activity — true end-to-end flow (transit time, customs dwell, landed cost) needs the Customs and Rail data products, both deferred. Treat the Corridor Performance Index as illustrative until those land.`,
+    healthScore: live ? 72 : 64,
+    recommendations: [
+      { text: "Track customs digitisation at the border post — the fastest lever on corridor transit time.", confidence: 0.66 },
+      { text: "Gateway throughput is running ahead of trend; prioritise slot allocation to capture the growth.", confidence: 0.72 },
+    ],
   };
 
   return <ObjectProfile data={data} objectTypeLabel="Trade Corridor" iconPath={CORRIDOR_ICON} />;
