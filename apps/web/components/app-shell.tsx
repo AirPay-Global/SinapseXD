@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { DecisionProvider } from "@/components/decisions/decision-store";
 import { EvidenceProvider } from "@/components/evidence/evidence-drawer";
 import { RoleSwitcher } from "@/components/role-switcher";
 
@@ -83,6 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   return (
     <EvidenceProvider>
+      <DecisionProvider>
       <div className="grid h-screen grid-cols-1 md:grid-cols-[248px_1fr]">
         {/* Sidebar */}
         <aside className="hidden min-h-0 flex-col border-r border-border bg-card md:flex">
@@ -134,6 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <main className="min-h-0 flex-1 overflow-y-auto px-6 py-7 lg:px-9">{children}</main>
         </div>
       </div>
+      </DecisionProvider>
     </EvidenceProvider>
   );
 }
