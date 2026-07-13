@@ -25,7 +25,7 @@ function Divider() {
 export function ContextBar() {
   const { role } = useRole();
   return (
-    <div className="flex h-9 shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-surface-muted px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex h-9 shrink-0 items-center gap-3 overflow-x-auto border-b border-border bg-surface-muted px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden print:hidden">
       <Seg label="Role" value={role.name} />
       <Divider />
       <Seg label="Org" value={role.org} />

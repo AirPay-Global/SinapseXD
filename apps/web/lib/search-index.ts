@@ -59,7 +59,7 @@ const SCREENS: Array<[string, string, string]> = [
   ["Evidence Centre", "Bronze → Silver → Gold lineage", "/evidence"],
   ["AI Advisors", "13 domain specialists", "/jarvis"],
   ["Stakeholders", "Command-centre catalogue", "/stakeholders"],
-  ["APRM Reports", "Governance reporting exports", "/reports/aprm"],
+  ["Reporting Centre", "Evidence-backed reports across every framework", "/reports"],
   ["Port Authority dashboard", "Stakeholder command centre", "/dashboard/port"],
   ["Government & Policy dashboard", "Stakeholder command centre", "/dashboard/government"],
   ["DFI Investment dashboard", "Stakeholder command centre", "/dashboard/dfi"],

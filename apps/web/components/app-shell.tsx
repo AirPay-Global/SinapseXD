@@ -8,6 +8,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { ContextBar } from "@/components/context-bar";
 import { DecisionProvider } from "@/components/decisions/decision-store";
 import { EvidenceProvider } from "@/components/evidence/evidence-drawer";
+import { ReportProvider } from "@/components/reporting/report-store";
 import { RoleProvider } from "@/components/role-context";
 import { RoleSwitcher } from "@/components/role-switcher";
 
@@ -58,7 +59,7 @@ const NAV: Group[] = [
       { href: "/ontology", label: "Ontology Explorer", icon: I("M12 7V5M8 15l3-3M16 15l-3-3M12 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M5 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M19 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3") },
       { href: "/intelligence", label: "Intelligence Centre", icon: I("M4 4h16v12H4zM8 14l3-3 2 2 5-5") },
       { href: "/evidence", label: "Evidence Centre", icon: I("M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6zM9 12l2 2 4-4") },
-      { href: "/reports/aprm", label: "Reporting Centre", icon: I("M6 3h9l3 3v15H6zM15 3v3h3M8 12h8M8 16h8M8 8h4") },
+      { href: "/reports", label: "Reporting Centre", icon: I("M6 3h9l3 3v15H6zM15 3v3h3M8 12h8M8 16h8M8 8h4") },
       { href: "/twin", label: "Digital Twin", badge: "Beta", icon: I("M12 2 3 7v10l9 5 9-5V7zM3 7l9 5 9-5M12 12v10") },
     ],
   },
@@ -212,7 +213,7 @@ function Shell({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         style={{ width: collapsed ? 72 : 248 }}
-        className="hidden min-h-0 shrink-0 flex-col border-r border-border bg-surface-sidebar transition-[width] duration-200 md:flex"
+        className="hidden min-h-0 shrink-0 flex-col border-r border-border bg-surface-sidebar transition-[width] duration-200 md:flex print:hidden"
       >
         <div className={`flex items-center border-b border-border py-4 ${collapsed ? "justify-center px-2" : "gap-2.5 px-4"}`}>
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand-blue to-brand-navy">
@@ -259,7 +260,7 @@ function Shell({ children }: { children: ReactNode }) {
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-5">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card px-5 print:hidden">
           <button
             onClick={() => setSearchOpen(true)}
             className="hidden items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left text-muted-foreground transition-colors hover:border-border-strong sm:flex sm:w-[340px]"
@@ -290,11 +291,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <EvidenceProvider>
       <DecisionProvider>
-        <RoleProvider>
-          <AdvisorProvider>
-            <Shell>{children}</Shell>
-          </AdvisorProvider>
-        </RoleProvider>
+        <ReportProvider>
+          <RoleProvider>
+            <AdvisorProvider>
+              <Shell>{children}</Shell>
+            </AdvisorProvider>
+          </RoleProvider>
+        </ReportProvider>
       </DecisionProvider>
     </EvidenceProvider>
   );
