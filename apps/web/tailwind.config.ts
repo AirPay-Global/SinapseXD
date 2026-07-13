@@ -17,11 +17,16 @@ const config: Config = {
         muted: "var(--muted)",
         "muted-foreground": "var(--muted-foreground)",
         border: "var(--border)",
+        "border-strong": "var(--border-strong)",
         ring: "var(--ring)",
         success: "var(--success)",
         warning: "var(--warning)",
         destructive: "var(--destructive)",
         info: "var(--info)",
+        simulation: "var(--simulation)",
+        "surface-sidebar": "var(--surface-sidebar)",
+        "surface-muted": "var(--surface-muted)",
+        "surface-active": "var(--surface-active)",
         brand: {
           navy: "var(--brand-navy)",
           blue: "var(--brand-blue)",
@@ -31,6 +36,13 @@ const config: Config = {
       },
       borderRadius: {
         DEFAULT: "var(--radius)",
+      },
+      boxShadow: {
+        // Namespaced so existing `shadow-sm/md/lg` utilities keep Tailwind's
+        // scale; new components opt in with `shadow-elev-*`.
+        "elev-sm": "var(--shadow-sm)",
+        "elev-md": "var(--shadow-md)",
+        "elev-lg": "var(--shadow-lg)",
       },
       fontFamily: {
         sans: "var(--font-sans)",
