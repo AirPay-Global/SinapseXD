@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ROLES, useRole } from "@/components/role-context";
 
-export function RoleSwitcher() {
+export function RoleSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const { role, roleIndex, setRoleIndex } = useRole();
@@ -13,6 +13,20 @@ export function RoleSwitcher() {
     setRoleIndex(i);
     setOpen(false);
     router.push(ROLES[i].href);
+  }
+
+  // Collapsed rail — avatar only, tooltip carries the name (spec §7).
+  if (collapsed) {
+    return (
+      <div className="flex justify-center border-b border-border px-2 py-3">
+        <span
+          title={`${role.name} · ${role.org}`}
+          className="grid h-9 w-9 place-items-center rounded-md bg-brand-navy text-[11px] font-bold text-white"
+        >
+          {role.code}
+        </span>
+      </div>
+    );
   }
 
   return (
