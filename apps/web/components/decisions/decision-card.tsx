@@ -41,24 +41,12 @@ export function StateBadge({ state }: { state: DecisionItem["state"] }) {
 
 type Panel = "modify" | "delegate" | "schedule" | "reject" | null;
 
-function ActionChip({ label, onClick, tone }: { label: string; onClick: () => void; tone?: "danger" }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-md border border-border px-2 py-1 text-[11px] font-medium transition-colors hover:bg-muted ${
-        tone === "danger" ? "text-destructive hover:border-destructive/40" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
 export function DecisionCard({ decision: d }: { decision: DecisionItem }) {
   const openEvidence = useEvidence();
   const api = useDecisions();
   const [panel, setPanel] = useState<Panel>(null);
   const [draft, setDraft] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const openPanel = (p: Exclude<Panel, null>) => {
     setPanel(panel === p ? null : p);
@@ -76,28 +64,45 @@ export function DecisionCard({ decision: d }: { decision: DecisionItem }) {
   };
 
   const decided = d.state !== "open";
+  // Action hierarchy (§9): one primary, two secondary (Simulate/Evidence),
+  // the rest behind an overflow menu.
+  const primary = !decided
+    ? { label: "Accept", onClick: () => api.accept(d.id) }
+    : d.tasks.length === 0
+      ? { label: "Launch workflow", onClick: () => api.launchWorkflow(d.id) }
+      : null;
+
+  const menuItems: Array<{ label: string; onClick: () => void; tone?: "danger" }> = [
+    { label: "Modify recommendation", onClick: () => openPanel("modify") },
+    { label: "Delegate", onClick: () => openPanel("delegate") },
+    { label: "Schedule", onClick: () => openPanel("schedule") },
+    ...(d.tasks.length > 0 || !primary ? [] : primary.label === "Launch workflow" ? [] : [{ label: "Launch workflow", onClick: () => api.launchWorkflow(d.id) }]),
+    { label: "Open investigation", onClick: () => api.openInvestigation(d.id) },
+    ...(!decided ? [{ label: "Reject", onClick: () => openPanel("reject"), tone: "danger" as const }] : []),
+  ];
 
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex gap-3 px-4 pb-3 pt-4">
-        <div className={`w-[3px] shrink-0 rounded ${SEV_BAR[d.sev]}`} />
+      <div className="flex gap-3 px-3.5 pb-2.5 pt-3">
+        {/* Severity rail — non-colour cue paired with the state badge (§6/§22) */}
+        <div className={`w-[3px] shrink-0 rounded ${SEV_BAR[d.sev]}`} aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{d.stakeholder}</span>
+            <span className="text-[11px] font-medium text-muted-foreground">{d.stakeholder}</span>
             <span className="ml-auto"><StateBadge state={d.state} /></span>
           </div>
           <Link href={`/decision/${d.id}`} className="mt-0.5 block text-[15px] font-semibold leading-snug text-card-foreground hover:text-primary">
             {d.problem}
           </Link>
-          <p className="mt-1.5 text-[12.5px] text-muted-foreground">{d.body}</p>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">{d.body}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {d.relatedObjects.map((o) =>
               o.href ? (
-                <Link key={o.label} href={o.href} className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-primary hover:bg-muted">
+                <Link key={o.label} href={o.href} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-primary hover:bg-surface-active">
                   {o.label}
                 </Link>
               ) : (
-                <span key={o.label} className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                <span key={o.label} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                   {o.label}
                 </span>
               ),
@@ -106,18 +111,18 @@ export function DecisionCard({ decision: d }: { decision: DecisionItem }) {
         </div>
       </div>
 
-      <div className="mx-4 mb-2.5 rounded-lg border p-3" style={{ borderColor: "color-mix(in srgb,var(--accent) 34%,transparent)", background: "color-mix(in srgb,var(--accent) 10%,var(--card))" }}>
+      <div className="mx-3.5 mb-2 rounded-lg p-2.5" style={{ background: "color-mix(in srgb,var(--accent) 9%,var(--card))" }}>
         <p className="mb-1 flex items-center gap-1.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-accent">
           <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9z" /></svg>
           Recommended action{d.version > 1 && <span className="normal-case tracking-normal">· v{d.version}</span>}
         </p>
         <p className="text-[13px] font-medium text-foreground">{d.recommendation}</p>
-        <p className="mt-1.5 text-[11.5px] text-muted-foreground">
+        <p className="mt-1 text-[11.5px] text-muted-foreground">
           <b className="font-semibold text-foreground/80">Expected outcome:</b> {d.expectedOutcome}
         </p>
       </div>
 
-      <div className="mx-4 mb-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11.5px] text-muted-foreground sm:grid-cols-4">
+      <div className="mx-3.5 mb-2.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[11.5px] text-muted-foreground sm:grid-cols-4">
         <span>{d.valueAtRisk.label}<br /><b className="text-[12.5px] tabular-nums text-foreground">{d.valueAtRisk.amount}</b></span>
         <span>Confidence<br /><b className="text-[12.5px] tabular-nums text-foreground">{Math.round(d.confidence * 100)}%</b></span>
         <span>Owner<br /><b className="text-[12px] text-foreground">{d.owner.split("·")[0].trim()}</b></span>
@@ -125,7 +130,7 @@ export function DecisionCard({ decision: d }: { decision: DecisionItem }) {
       </div>
 
       {panel && (
-        <div className="mx-4 mb-3 rounded-lg border border-border bg-background p-2.5">
+        <div className="mx-3.5 mb-2.5 rounded-lg border border-border bg-background p-2.5">
           <p className="mb-1.5 font-mono text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground">
             {panel === "modify" ? "Modify recommendation" : panel === "delegate" ? "Delegate to" : panel === "schedule" ? "Schedule decision" : "Reject — reason (optional)"}
           </p>
@@ -146,30 +151,55 @@ export function DecisionCard({ decision: d }: { decision: DecisionItem }) {
         </div>
       )}
 
-      <div className="mt-auto border-t border-border px-4 py-2.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {!decided && (
-            <button onClick={() => api.accept(d.id)} className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground hover:opacity-90">
-              Accept
+      <div className="mt-auto border-t border-border px-3.5 py-2">
+        <div className="flex items-center gap-1.5">
+          {primary && (
+            <button onClick={primary.onClick} className="rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground hover:opacity-90">
+              {primary.label}
             </button>
           )}
-          <ActionChip label="Modify" onClick={() => openPanel("modify")} />
-          <ActionChip label="Delegate" onClick={() => openPanel("delegate")} />
-          <ActionChip label="Schedule" onClick={() => openPanel("schedule")} />
-          <ActionChip label="Workflow" onClick={() => api.launchWorkflow(d.id)} />
-          <ActionChip label="Investigate" onClick={() => api.openInvestigation(d.id)} />
-          {!decided && <ActionChip label="Reject" tone="danger" onClick={() => openPanel("reject")} />}
-          <span className="ml-auto flex items-center gap-1.5">
-            <Link href={`/simulation?decision=${d.id}`} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
-              Simulate
-            </Link>
-            <button onClick={() => openEvidence(d.evidence)} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-primary hover:bg-muted">
-              <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg>
-              Evidence
+          <Link href={`/simulation?decision=${d.id}`} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+            Simulate
+          </Link>
+          <button onClick={() => openEvidence(d.evidence)} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-muted">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg>
+            Evidence
+          </button>
+
+          <div className="relative ml-auto">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="More actions"
+              aria-expanded={menuOpen}
+              className="grid h-8 w-8 place-items-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
             </button>
-          </span>
+            {menuOpen && (
+              <>
+                <button aria-hidden tabIndex={-1} onClick={() => setMenuOpen(false)} className="fixed inset-0 z-10 cursor-default" />
+                <div className="absolute bottom-full right-0 z-20 mb-1 w-48 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-[var(--shadow-md)]">
+                  {menuItems.map((m) => (
+                    <button
+                      key={m.label}
+                      onClick={() => {
+                        m.onClick();
+                        setMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center px-3 py-1.5 text-left text-[12px] hover:bg-muted ${m.tone === "danger" ? "text-destructive" : "text-card-foreground"}`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                  <Link href={`/decision/${d.id}`} onClick={() => setMenuOpen(false)} className="flex w-full items-center border-t border-border px-3 py-1.5 text-left text-[12px] text-muted-foreground hover:bg-muted hover:text-foreground">
+                    Open full details →
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
         </div>
-        <div className="mt-2 flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted-foreground">
+        <div className="mt-1.5 flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted-foreground">
           <span>Lifecycle · {STAGE_LABEL[d.stage]}</span>
           <span className="ml-auto normal-case tracking-normal">{d.watchers.length} watching · {d.activity.length} events</span>
         </div>
