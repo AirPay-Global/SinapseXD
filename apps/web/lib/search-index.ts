@@ -53,6 +53,7 @@ const SCREENS: Array<[string, string, string]> = [
   ["Decision Centre", "What needs your decision today", "/decision"],
   ["Workflow Centre", "Decision lifecycle board", "/workflow"],
   ["Intelligence Centre", "Forecasts, anomalies, opportunities, briefings", "/intelligence"],
+  ["Data Visualisation Centre", "Overlay datasets, reveal patterns", "/dataviz"],
   ["Simulation Centre", "What-if levers: trade, GDP, jobs, ROI", "/simulation"],
   ["Digital Twin", "Africa → … → Container drill", "/twin"],
   ["Ontology Explorer", "Browse the objects, not the tables", "/ontology"],

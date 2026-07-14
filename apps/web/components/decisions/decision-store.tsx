@@ -35,6 +35,8 @@ interface DecisionApi {
   comment(id: string, text: string): void;
   toggleTask(id: string, taskId: string): void;
   watch(id: string, name: string): void;
+  /** Create a brand-new decision (e.g. from a visualisation); returns its id. */
+  createDecision(item: DecisionItem): string;
   reset(): void;
 }
 
@@ -46,14 +48,14 @@ export function useDecisions(): DecisionApi {
   return ctx;
 }
 
-function loadOverlays(): Overlays {
+function loadPersisted(): { overlays: Overlays; created: DecisionItem[] } {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as { version: string; overlays: Overlays };
-    return parsed.version === SEED_VERSION ? parsed.overlays : {};
+    if (!raw) return { overlays: {}, created: [] };
+    const parsed = JSON.parse(raw) as { version: string; overlays: Overlays; created?: DecisionItem[] };
+    return parsed.version === SEED_VERSION ? { overlays: parsed.overlays, created: parsed.created ?? [] } : { overlays: {}, created: [] };
   } catch {
-    return {};
+    return { overlays: {}, created: [] };
   }
 }
 
@@ -88,27 +90,33 @@ function workflowTasks(d: DecisionItem): WorkflowTask[] {
 
 export function DecisionProvider({ children }: { children: ReactNode }) {
   const [overlays, setOverlays] = useState<Overlays>({});
+  const [created, setCreated] = useState<DecisionItem[]>([]);
 
   // Hydrate after mount so SSR output (pure seed) matches the first client render.
   useEffect(() => {
-    setOverlays(loadOverlays());
+    const p = loadPersisted();
+    setOverlays(p.overlays);
+    setCreated(p.created);
   }, []);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SEED_VERSION, overlays }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SEED_VERSION, overlays, created }));
     } catch {
       /* storage unavailable (private mode) — actions still work in-memory */
     }
-  }, [overlays]);
+  }, [overlays, created]);
 
   const api = useMemo<DecisionApi>(() => {
-    const decisions = SEED_DECISIONS.map((d) => merge(d, overlays[d.id]));
+    // Created decisions (e.g. from a visualisation) sit alongside the seed and
+    // take overlays just like seed items do.
+    const bases = [...created, ...SEED_DECISIONS];
+    const decisions = bases.map((d) => merge(d, overlays[d.id]));
     const byId = new Map(decisions.map((d) => [d.id, d]));
 
     const patch = (id: string, fn: (current: DecisionItem, o: DecisionOverlay) => DecisionOverlay) =>
       setOverlays((prev) => {
-        const seed = SEED_DECISIONS.find((d) => d.id === id);
+        const seed = bases.find((d) => d.id === id);
         if (!seed) return prev;
         const current = merge(seed, prev[id]);
         return { ...prev, [id]: fn(current, prev[id] ?? {}) };
@@ -172,9 +180,16 @@ export function DecisionProvider({ children }: { children: ReactNode }) {
           ...o,
           watchers: c.watchers.includes(name) ? c.watchers.filter((w) => w !== name) : [...c.watchers, name],
         })),
-      reset: () => setOverlays({}),
+      createDecision: (item) => {
+        setCreated((prev) => (prev.some((d) => d.id === item.id) ? prev : [item, ...prev]));
+        return item.id;
+      },
+      reset: () => {
+        setOverlays({});
+        setCreated([]);
+      },
     };
-  }, [overlays]);
+  }, [overlays, created]);
 
   return <DecisionContext.Provider value={api}>{children}</DecisionContext.Provider>;
 }
