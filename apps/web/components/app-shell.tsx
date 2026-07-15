@@ -59,6 +59,7 @@ const NAV: Group[] = [
       { href: "/ontology", label: "Ontology Explorer", icon: I("M12 7V5M8 15l3-3M16 15l-3-3M12 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M5 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M19 16.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3") },
       { href: "/intelligence", label: "Intelligence Centre", icon: I("M4 4h16v12H4zM8 14l3-3 2 2 5-5") },
       { href: "/dataviz", label: "Data Visualisation", icon: I("M4 20V4M4 20h16M8 16l3-4 3 2 5-7") },
+      { href: "/satellite", label: "Satellite Intelligence", icon: I("M13 7l4-4 4 4-4 4M11 17l-4 4-4-4 4-4M14 10l-4 4M3 3l7 7M21 21l-7-7") },
       { href: "/evidence", label: "Evidence Centre", icon: I("M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6zM9 12l2 2 4-4") },
       { href: "/reports", label: "Reporting Centre", icon: I("M6 3h9l3 3v15H6zM15 3v3h3M8 12h8M8 16h8M8 8h4") },
       { href: "/twin", label: "Digital Twin", badge: "Beta", icon: I("M12 2 3 7v10l9 5 9-5V7zM3 7l9 5 9-5M12 12v10") },
