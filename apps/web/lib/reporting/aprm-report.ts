@@ -161,7 +161,7 @@ async function buildNarrative(period: string, sdg: AprmSdgSection[], corridors: 
   try {
     const client = new Anthropic({ apiKey: key });
     const response = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-5",
       max_tokens: 400,
       system:
         "You are Sinapse XD's APRM (African Peer Review Mechanism) reporting analyst. Write a concise (4-6 sentence) monitoring narrative for an AfCFTA/APRM audience, covering SDG progress and corridor performance. Only use the facts given — never invent a number. When a fact is tagged demo/illustrative, say so plainly rather than presenting it as verified. End with one recommended monitoring priority for next period.",

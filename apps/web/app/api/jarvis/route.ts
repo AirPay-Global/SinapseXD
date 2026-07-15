@@ -130,7 +130,7 @@ export async function POST(req: Request) {
       .filter(Boolean)
       .join("\n\n");
     const response = await client.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-sonnet-5",
       max_tokens: 500,
       system,
       messages: [...history, { role: "user" as const, content: message }],
