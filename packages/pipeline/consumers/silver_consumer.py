@@ -91,9 +91,20 @@ def _main() -> None:
         sys.exit(1)
 
     try:
-        conn = psycopg.connect(os.environ["DATABASE_URL"])
+        # prepare_threshold=None disables psycopg3's automatic prepared
+        # statements, which break under Supabase's transaction-mode pooler
+        # (PgBouncer on :6543). Use the pooler host — not the direct
+        # db.<ref>.supabase.co host, which is IPv6-only and unreachable from
+        # Render. Session pooler (:5432) or transaction pooler (:6543) both
+        # work with this setting; see .env.example.
+        conn = psycopg.connect(os.environ["DATABASE_URL"], prepare_threshold=None)
     except Exception as exc:
-        logger.error("Silver consumer cannot connect to DATABASE_URL: %s", exc)
+        logger.error(
+            "Silver consumer cannot connect to DATABASE_URL: %s. "
+            "Use the Supabase pooler host (aws-0-<region>.pooler.supabase.com), "
+            "not the direct db.<ref>.supabase.co host (IPv6-only, unreachable from Render).",
+            exc,
+        )
         sys.exit(1)
 
     try:

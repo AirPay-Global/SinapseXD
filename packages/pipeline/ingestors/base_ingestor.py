@@ -79,7 +79,10 @@ class BaseIngestor(ABC):
 
                 from lake import LineageCatalog
 
-                self.lineage = LineageCatalog(psycopg.connect(dsn))
+                # prepare_threshold=None keeps this working under Supabase's
+                # transaction-mode pooler (PgBouncer); use the pooler host, not
+                # the IPv6-only direct host. See silver_consumer for the full note.
+                self.lineage = LineageCatalog(psycopg.connect(dsn, prepare_threshold=None))
 
     def run(self) -> None:
         self._configure_lake()
