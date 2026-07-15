@@ -19,7 +19,7 @@ services:
   - type: worker
     name: sinapse-silver-consumer
     runtime: python
-    buildCommand: pip install -r packages/pipeline/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m consumers.silver_consumer
     rootDir: packages/pipeline
     envVars:
@@ -29,7 +29,7 @@ services:
   - type: worker
     name: sinapse-pipeline-ais
     runtime: python
-    buildCommand: pip install -r packages/pipeline/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m ingestors.ais_ingestor
     rootDir: packages/pipeline
     envVars:
@@ -40,7 +40,7 @@ services:
     name: sinapse-cron-trade
     runtime: python
     schedule: "0 6 * * *"
-    buildCommand: pip install -r packages/pipeline/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m ingestors.trade_ingestor
     rootDir: packages/pipeline
     envVars:
@@ -51,7 +51,7 @@ services:
     name: sinapse-cron-port-activity
     runtime: python
     schedule: "30 6 * * *"
-    buildCommand: pip install -r packages/pipeline/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m ingestors.port_activity_ingestor
     rootDir: packages/pipeline
     envVars:
@@ -62,7 +62,7 @@ services:
     name: sinapse-cron-weather
     runtime: python
     schedule: "0 * * * *"
-    buildCommand: pip install -r packages/pipeline/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m ingestors.weather_ingestor
     rootDir: packages/pipeline
     envVars:
@@ -73,7 +73,7 @@ services:
     name: sinapse-cron-freight
     runtime: python
     schedule: "0 */4 * * *"
-    buildCommand: pip install -r packages/pipeline/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m ingestors.market_ingestor
     rootDir: packages/pipeline
     envVars:
@@ -84,7 +84,7 @@ services:
     name: sinapse-cron-financial
     runtime: python
     schedule: "0 5 * * *"
-    buildCommand: pip install -r packages/pipeline/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m ingestors.financial_ingestor
     rootDir: packages/pipeline
     envVars:
@@ -95,7 +95,7 @@ services:
     name: sinapse-cron-sdg
     runtime: python
     schedule: "0 3 * * 1"
-    buildCommand: pip install -r packages/pipeline/requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: python -m ingestors.sdg_ingestor
     rootDir: packages/pipeline
     envVars:
