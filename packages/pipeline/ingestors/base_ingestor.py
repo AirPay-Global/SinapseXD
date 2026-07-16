@@ -67,7 +67,11 @@ class BaseIngestor(ABC):
 
     def _configure_lake(self) -> None:
         """Build Bronze + lineage from env when not already injected (tests
-        inject their own doubles, so those win and this is a no-op)."""
+        inject their own doubles, so those win and this is a no-op). A bad or
+        unreachable DATABASE_URL must not crash the whole ingestor run before
+        it even gets to fetch() — lineage recording is an enrichment, not a
+        precondition, so this degrades to "no lineage catalog" and logs,
+        rather than raising."""
         if self.bronze is None:
             from lake import bronze_from_env
 
@@ -79,10 +83,18 @@ class BaseIngestor(ABC):
 
                 from lake import LineageCatalog
 
-                # prepare_threshold=None keeps this working under Supabase's
-                # transaction-mode pooler (PgBouncer); use the pooler host, not
-                # the IPv6-only direct host. See silver_consumer for the full note.
-                self.lineage = LineageCatalog(psycopg.connect(dsn, prepare_threshold=None))
+                try:
+                    # prepare_threshold=None keeps this working under Supabase's
+                    # transaction-mode pooler (PgBouncer); use the pooler host, not
+                    # the IPv6-only direct host. See silver_consumer for the full note.
+                    self.lineage = LineageCatalog(psycopg.connect(dsn, prepare_threshold=None))
+                except Exception:
+                    logger.exception(
+                        "Could not connect DATABASE_URL for the lineage catalog — "
+                        "continuing without lineage recording. Use the Supabase pooler "
+                        "host (aws-0-<region>.pooler.supabase.com), not the direct "
+                        "db.<ref>.supabase.co host (IPv6-only, unreachable from Render)."
+                    )
 
     def run(self) -> None:
         self._configure_lake()
