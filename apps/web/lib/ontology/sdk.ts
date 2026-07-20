@@ -1,8 +1,7 @@
 import "server-only";
-import { cookies } from "next/headers";
 import type { Corridor, Country, PillarFeed, Port, VesselPosition, VesselStatus } from "@sinapse/shared";
 import { ONTOLOGY, ONTOLOGY_MARTS } from "@sinapse/shared";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { downFeed, liveFeed } from "@/lib/feed";
 import type { CorridorGateway, CorridorTradeFlow, EconomicIndicator, FreightRate, MarineConditions, PortActivity30d, SdgReading, ThroughputRow } from "./types";
 
@@ -50,11 +49,16 @@ function toCorridor(r: Row): Corridor {
 }
 
 export async function createOntology() {
-  // Build the client defensively — a missing/misconfigured Supabase env must
-  // degrade to empty reads (demo fallback), never throw and 500 the page.
-  let supabase: ReturnType<typeof createClient> | null = null;
+  // The ontology SDK reads only the SHARED intelligence layer (ontology, Gold
+  // marts, Silver aggregates) — no per-tenant data — so it uses the
+  // service-role client, which bypasses the `authenticated`-only RLS on those
+  // tables. Without this, an anonymous web tier (no Clerk auth yet) reads zero
+  // rows and every dashboard silently falls back to demo. Build defensively:
+  // a missing service key or misconfig must degrade to empty reads (demo),
+  // never throw and 500 the page.
+  let supabase: ReturnType<typeof createServiceClient> = null;
   try {
-    supabase = createClient(await cookies());
+    supabase = createServiceClient();
   } catch {
     supabase = null;
   }

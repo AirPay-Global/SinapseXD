@@ -1,7 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
+import { createServiceClient } from "@/lib/supabase/server";
 
 /**
  * AI Briefings — Claude-powered corridor analyst (Design Bible §10, CLAUDE.md
@@ -28,9 +27,12 @@ export interface CorridorBriefingInput {
 }
 
 export async function getCorridorBriefing(input: CorridorBriefingInput): Promise<string | null> {
-  let supabase: ReturnType<typeof createClient> | null = null;
+  // ai_briefings is shared (not tenant-scoped) with authenticated-only RLS —
+  // read/write it with the service client so the cache works without a signed-in
+  // user (same rationale as the ontology SDK).
+  let supabase: ReturnType<typeof createServiceClient> = null;
   try {
-    supabase = createClient(await cookies());
+    supabase = createServiceClient();
   } catch {
     supabase = null;
   }
