@@ -20,7 +20,8 @@ const SYSTEM_PREAMBLE = `You are a specialist AI advisor inside Sinapse XD — a
 
 Ground rules:
 - Only speak to the data pillars and objects described in the CONTEXT block below. Never invent a specific number, vessel, or figure that isn't given to you.
-- If asked about a pillar marked "idle" or "demo", say plainly that it isn't live yet rather than fabricating a value.
+- The CONTEXT includes a "Live snapshot" with real current figures — use those directly when they answer the question instead of asking the user to paste dashboard numbers back to you. Only ask the user for a number if it genuinely isn't in CONTEXT.
+- If asked about a pillar marked "idle" or "demo", or a metric CONTEXT explicitly says has no live source (e.g. anchorage wait, berth occupancy %), say plainly that it isn't live yet rather than fabricating a value.
 - Be concise — 2-4 sentences unless the user asks for detail. This is a decision copilot, not a report generator.
 - Stay inside your domain lens; if the question belongs to another advisor, answer briefly and name the better-suited advisor.
 - When relevant, end with a one-line recommendation or next question the user should ask.`;
@@ -55,9 +56,10 @@ function stakeholderBlock(c: StakeholderContext | undefined): string {
  * index) is a cheap, honest proxy for "is this pillar actually live."
  */
 async function pillarStatusLines(onto: Awaited<ReturnType<typeof createOntology>>): Promise<string[]> {
-  const [portActivity, conditions, trade, freight, sdg, econ] = await Promise.all([
+  const [portActivity, conditions, vessels, trade, freight, sdg, econ] = await Promise.all([
     onto.ports.activity30d("durban"),
     onto.ports.conditions("durban"),
+    onto.ports.vesselsNear("durban"),
     onto.corridors.tradeFlows(),
     onto.market.freightIndex(),
     onto.countries.sdgIndicators("ZAF"),
@@ -66,7 +68,7 @@ async function pillarStatusLines(onto: Awaited<ReturnType<typeof createOntology>
   const line = (label: string, live: boolean, idleHint: string) =>
     `- ${label}: ${live ? "LIVE" : `wired, idle — ${idleHint}`} — dashboards show ${live ? "real" : "demo"} data.`;
 
-  return [
+  const lines = [
     line("Port Activity (IMF PortWatch)", portActivity.data !== null, "no key needed, check the worker is deployed"),
     line("Weather & Marine (Open-Meteo)", conditions.data !== null, "no key needed, check the worker is deployed"),
     line("Financial Data (World Bank)", econ.data.length > 0, "no key needed, check the worker is deployed"),
@@ -76,6 +78,34 @@ async function pillarStatusLines(onto: Awaited<ReturnType<typeof createOntology>
     "- AIS & Vessels (AISHub): needs AISHUB_USERNAME (a reciprocal key) — dashboards show demo data until then.",
     "- Sinapse CRM: deliberately deferred, out of scope for this build.",
   ];
+
+  // A pillar being "LIVE" only means the underlying feed is real — it does
+  // NOT mean every number a user might ask for exists. Hand over the actual
+  // figures for Durban so the advisor can answer directly instead of asking
+  // the user to paste dashboard numbers back, and say plainly which
+  // operational metrics have no live source at all (no fabricating those
+  // either, in the other direction).
+  const snapshot: string[] = ["Live snapshot — Port of Durban:"];
+  snapshot.push(
+    portActivity.data
+      ? `- Port calls (30d): ${portActivity.data.port_calls_30d} · Import ${Math.round(portActivity.data.import_tons_30d)}t · Export ${Math.round(portActivity.data.export_tons_30d)}t (IMF PortWatch, live, as of ${portActivity.data.as_of}).`
+      : "- Port calls / throughput: no live reading right now (demo data on the dashboard).",
+  );
+  snapshot.push(
+    conditions.data
+      ? `- Marine conditions: wave ${conditions.data.wave_height_m}m, wind ${conditions.data.wind_speed_kn}kn, disruption risk "${conditions.data.disruption_risk ?? "unknown"}" (Open-Meteo, live, ${conditions.data.ts}).`
+      : "- Marine conditions: no live reading right now (demo data on the dashboard).",
+  );
+  snapshot.push(
+    vessels.data.length > 0
+      ? `- Vessels with a live AIS position destined for Durban right now: ${vessels.data.length}.`
+      : "- Live AIS vessel count: none reporting Durban as destination right now (AIS is idle without AISHUB_USERNAME — the dashboard's vessel queue is demo data).",
+  );
+  snapshot.push(
+    "- Anchorage wait time and berth occupancy %: NOT available from any live source in this platform yet (no congestion mart exists). Any figure for these on a dashboard is illustrative demo data — never state a specific wait-time or occupancy number as real.",
+  );
+
+  return [...lines, ...snapshot];
 }
 
 async function buildContext(): Promise<string> {
