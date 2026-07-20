@@ -47,6 +47,37 @@ function stakeholderBlock(c: StakeholderContext | undefined): string {
   return lines.length > 1 ? lines.join("\n") : "";
 }
 
+/**
+ * Pillar status is checked against real data on every request — not
+ * hardcoded — precisely so Jarvis can't tell a stale story once a worker
+ * gets deployed or a key gets set. One representative Gold-mart read per
+ * pillar (Durban / ZAF / the Durban-Lusaka corridor / the global freight
+ * index) is a cheap, honest proxy for "is this pillar actually live."
+ */
+async function pillarStatusLines(onto: Awaited<ReturnType<typeof createOntology>>): Promise<string[]> {
+  const [portActivity, conditions, trade, freight, sdg, econ] = await Promise.all([
+    onto.ports.activity30d("durban"),
+    onto.ports.conditions("durban"),
+    onto.corridors.tradeFlows(),
+    onto.market.freightIndex(),
+    onto.countries.sdgIndicators("ZAF"),
+    onto.countries.economicIndicators("ZAF"),
+  ]);
+  const line = (label: string, live: boolean, idleHint: string) =>
+    `- ${label}: ${live ? "LIVE" : `wired, idle — ${idleHint}`} — dashboards show ${live ? "real" : "demo"} data.`;
+
+  return [
+    line("Port Activity (IMF PortWatch)", portActivity.data !== null, "no key needed, check the worker is deployed"),
+    line("Weather & Marine (Open-Meteo)", conditions.data !== null, "no key needed, check the worker is deployed"),
+    line("Financial Data (World Bank)", econ.data.length > 0, "no key needed, check the worker is deployed"),
+    line("SDG Reporting (UN SDG API)", sdg.data.length > 0, "no key needed, check the worker is deployed"),
+    line("Trade Analytics (UN Comtrade)", trade.data.length > 0, "needs UN_COMTRADE_API_KEY"),
+    line("Market Intel (Freightos)", freight.data !== null, "needs FREIGHTOS_API_KEY"),
+    "- AIS & Vessels (AISHub): needs AISHUB_USERNAME (a reciprocal key) — dashboards show demo data until then.",
+    "- Sinapse CRM: deliberately deferred, out of scope for this build.",
+  ];
+}
+
 async function buildContext(): Promise<string> {
   const onto = await createOntology();
   const [ports, corridors, countries] = await Promise.all([
@@ -58,16 +89,8 @@ async function buildContext(): Promise<string> {
     ? `Ontology (live): ${ports.length} ports, ${corridors.length} corridors, ${countries.length} countries.`
     : `Ontology (seed/demo, DB unreachable): 7 pilot ports (Durban, Mombasa, Lagos, Lomé, Djibouti, Dar es Salaam, Tema), 7 corridors, 14 countries.`;
 
-  return [
-    objectLine,
-    "Pillar status:",
-    "- Port Activity (IMF PortWatch): LIVE — no key needed.",
-    "- AIS & Vessels (AISHub): wired, idle until AISHUB_USERNAME is set — dashboards show demo data.",
-    "- Trade Analytics (UN Comtrade): wired, idle until UN_COMTRADE_API_KEY is set — dashboards show demo data.",
-    "- Weather & Marine (Open-Meteo): wired, idle until the worker is deployed — dashboards show demo data.",
-    "- Market Intel, Financial Data, SDG Reporting: not yet built (stubs).",
-    "- Sinapse CRM: deliberately deferred, out of scope for this build.",
-  ].join("\n");
+  const pillars = await pillarStatusLines(onto);
+  return [objectLine, "Pillar status (checked live, not hardcoded):", ...pillars].join("\n");
 }
 
 // Jarvis calls a paid, latency-bearing model per request — tighter than a
