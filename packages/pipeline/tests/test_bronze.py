@@ -35,15 +35,16 @@ def test_bronze_local_roundtrip_and_partitioned_key(tmp_path):
     ]
     landing = lake.land("ais", "aishub", records)
 
+    import re
+
     assert landing.row_count == 2
-    assert landing.ref.startswith("ais/aishub/date=")
-    assert landing.ref.endswith(".parquet")
+    # Date-partitioned but NOT Hive-style — no "=" (rejected by Supabase Storage).
+    assert re.match(r"^ais/aishub/\d{4}-\d{2}-\d{2}/\d{8}T\d{6}Z-[0-9a-f]{8}\.parquet$", landing.ref)
+    assert "=" not in landing.ref
     assert len(landing.sha256) == 64
 
     path = tmp_path / landing.ref
     assert path.exists()
-    # Read the file directly (ParquetFile), not via the dataset API, so the
-    # Hive-style date=… partition dir isn't injected as a column.
     assert pq.ParquetFile(str(path)).read().to_pylist() == records  # replayable, exact
 
     # Content-addressed: identical records serialise to identical bytes.

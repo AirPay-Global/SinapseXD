@@ -42,9 +42,13 @@ def _to_parquet(records: list[dict]) -> bytes:
 
 
 def _key(pillar: str, source: str, when: datetime, sha8: str) -> str:
+    # Date-partitioned, but NOT Hive-style ("date=YYYY-MM-DD"): Supabase Storage
+    # validates object keys against S3-safe characters, and "=" is not in that
+    # set — a Hive key is rejected with a 400 "Invalid key". A plain date path
+    # segment keeps the partitioning without the offending character.
     day = when.strftime("%Y-%m-%d")
     stamp = when.strftime("%Y%m%dT%H%M%SZ")
-    return f"{pillar}/{source}/date={day}/{stamp}-{sha8}.parquet"
+    return f"{pillar}/{source}/{day}/{stamp}-{sha8}.parquet"
 
 
 class BronzeStore(Protocol):
@@ -108,7 +112,13 @@ class SupabaseBronzeStore:
         resp = httpx.post(f"{self.endpoint}/{key}", content=data, headers=headers, timeout=self.timeout)
         if resp.status_code == 409:
             return  # already landed — immutable, nothing to do
-        resp.raise_for_status()
+        if resp.status_code >= 400:
+            # Surface Supabase's actual reason (invalid key, missing bucket,
+            # auth, size limit) — raise_for_status alone hides the response
+            # body, which is where Storage puts the real diagnosis.
+            raise RuntimeError(
+                f"Supabase Storage upload failed ({resp.status_code}) for key '{key}': {resp.text[:500]}"
+            )
 
 
 def bronze_from_env() -> BronzeLake | None:
