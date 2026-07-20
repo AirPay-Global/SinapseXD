@@ -38,12 +38,31 @@ class BaseIngestor(ABC):
     def land_raw(self, raw: list[dict]) -> str | None:
         """Write the raw batch to Bronze (immutable Parquet) and index its
         lineage. Returns the lineageRef, or None when Bronze isn't configured
-        (dev/demo) — the pipeline still runs, just without raw retention."""
+        (dev/demo) or the landing failed — the pipeline still runs and enqueues
+        to Silver either way, just without raw retention for that batch.
+
+        Raw retention is an enrichment for replayability, not a precondition
+        for the dashboards to get data: a Storage misconfiguration (e.g. the
+        sinapse-bronze bucket not created yet → HTTP 400) must not block the
+        Silver/Gold path. It's logged loudly so the operator fixes the bucket,
+        but ingestion continues."""
         if not self.bronze:
             return None
-        landing = self.bronze.land(self.pillar, self.source, raw)
+        try:
+            landing = self.bronze.land(self.pillar, self.source, raw)
+        except Exception:
+            logger.exception(
+                "Could not land raw batch to Bronze — continuing without raw "
+                "retention/lineage for this batch. If this is a 400/404, create "
+                "the '%s' Supabase Storage bucket (SUPABASE_STORAGE_BUCKET_RAW).",
+                os.environ.get("SUPABASE_STORAGE_BUCKET_RAW", "sinapse-bronze"),
+            )
+            return None
         if self.lineage:
-            self.lineage.record(landing)
+            try:
+                self.lineage.record(landing)
+            except Exception:
+                logger.exception("Landed to Bronze but could not index lineage — continuing.")
         logger.info("landed %d raw records to Bronze: %s", landing.row_count, landing.ref)
         return landing.ref
 
