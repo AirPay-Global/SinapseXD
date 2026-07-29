@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
+import { ANTHROPIC_MODEL } from "@/lib/ai/model";
 
 /**
  * Satellite AI Advisor (spec §6). Analyses the active map state and returns a
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
   try {
     const client = new Anthropic({ apiKey: key });
     const res = await client.messages.create({
-      model: "claude-sonnet-5",
+      model: ANTHROPIC_MODEL,
       max_tokens: 700,
       system: SYSTEM,
       messages: [{ role: "user", content: `CONTEXT:\n${context}\n\nQUESTION: ${question}` }],

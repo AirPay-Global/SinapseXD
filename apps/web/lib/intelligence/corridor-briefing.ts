@@ -1,6 +1,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceClient } from "@/lib/supabase/server";
+import { ANTHROPIC_MODEL } from "@/lib/ai/model";
 
 /**
  * AI Briefings — Claude-powered corridor analyst (Design Bible §10, CLAUDE.md
@@ -71,7 +72,7 @@ export async function getCorridorBriefing(input: CorridorBriefingInput): Promise
   try {
     const client = new Anthropic({ apiKey: key });
     const response = await client.messages.create({
-      model: "claude-sonnet-5",
+      model: ANTHROPIC_MODEL,
       max_tokens: 300,
       system:
         "You are Sinapse XD's corridor intelligence analyst. Write a concise (3-4 sentence) briefing for a port operator or government official. Only use the facts given — never invent a number. If a fact says data isn't live yet, say so plainly instead of guessing. End with one concrete, actionable recommendation.",
@@ -88,7 +89,7 @@ export async function getCorridorBriefing(input: CorridorBriefingInput): Promise
       {
         corridor_id: input.corridorId,
         briefing_date: today,
-        model: "claude-sonnet-5",
+        model: ANTHROPIC_MODEL,
         content,
         tokens_used: response.usage.input_tokens + response.usage.output_tokens,
       },

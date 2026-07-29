@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAdvisor } from "@/lib/ai/advisors";
 import { createOntology } from "@/lib/ontology/sdk";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
+import { ANTHROPIC_MODEL, describeAnthropicError } from "@/lib/ai/model";
 
 /**
  * AI advisors — the platform's specialist copilots (UI Evolution spec,
@@ -183,7 +184,7 @@ export async function POST(req: Request) {
       .filter(Boolean)
       .join("\n\n");
     const response = await client.messages.create({
-      model: "claude-sonnet-5",
+      model: ANTHROPIC_MODEL,
       max_tokens: 500,
       system,
       messages: [...history, { role: "user" as const, content: message }],
@@ -194,9 +195,10 @@ export async function POST(req: Request) {
       .join("\n");
     return NextResponse.json({ reply, status: "live" });
   } catch (err) {
-    console.error("Advisor request failed", err);
+    const detail = describeAnthropicError(err);
+    console.error("Advisor request failed:", detail, err);
     return NextResponse.json(
-      { reply: `The ${advisor.name} hit an error reaching Claude — try again in a moment.`, status: "down" },
+      { reply: `${advisor.name} couldn't reach Claude — ${detail}`, status: "down" },
       { status: 200 },
     );
   }
