@@ -77,7 +77,7 @@ function Workspace({ port, ports, tracks, occupancy }: { port: PortOption; ports
           <p className="text-[14px] font-bold text-foreground">Observe vessels, berths, ports & infrastructure</p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
-          <Ctx k="AIS freshness" v="live · &lt;30 min" tone="ok" />
+          <Ctx k="AIS freshness" v="live · <30 min" tone="ok" />
           <Ctx k="Imagery" v="planned" tone="muted" />
           <Ctx k="Active layers" v={String(active.size)} />
           <Ctx k="Avg berth confidence" v={`${avgConf}%`} />
@@ -186,7 +186,7 @@ function Ctx({ k, v, tone }: { k: string; v: string; tone?: "ok" | "warn" | "mut
   return (
     <span className="flex flex-col leading-tight">
       <span className="font-mono text-[8.5px] uppercase tracking-wide text-muted-foreground">{k}</span>
-      <span className={`font-semibold ${c}`} dangerouslySetInnerHTML={{ __html: v }} />
+      <span className={`font-semibold ${c}`}>{v}</span>
     </span>
   );
 }

@@ -6,7 +6,9 @@ any transform — so Silver is always replayable and every value has a
 
 Storage is pluggable: LocalBronzeStore for dev/tests, SupabaseBronzeStore
 (S3-compatible Supabase Storage) for production. The object key is
-self-describing and partitioned: `pillar/source/date=YYYY-MM-DD/<ts>-<sha8>.parquet`.
+self-describing and date-partitioned: `pillar/source/YYYY-MM-DD/<ts>-<sha8>.parquet`.
+Deliberately NOT Hive-style ("date=YYYY-MM-DD") — Supabase Storage rejects
+"=" in object keys with a 400.
 """
 from __future__ import annotations
 

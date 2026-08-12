@@ -91,21 +91,29 @@ function workflowTasks(d: DecisionItem): WorkflowTask[] {
 export function DecisionProvider({ children }: { children: ReactNode }) {
   const [overlays, setOverlays] = useState<Overlays>({});
   const [created, setCreated] = useState<DecisionItem[]>([]);
+  // Both effects below run in the SAME initial commit, in declaration order,
+  // against the SAME (still-empty) closure — without this guard, the persist
+  // effect fires once on mount with empty state, overwriting real
+  // localStorage data a moment before the load effect's setState takes
+  // effect. Only start persisting once hydration has actually happened.
+  const [hydrated, setHydrated] = useState(false);
 
   // Hydrate after mount so SSR output (pure seed) matches the first client render.
   useEffect(() => {
     const p = loadPersisted();
     setOverlays(p.overlays);
     setCreated(p.created);
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SEED_VERSION, overlays, created }));
     } catch {
       /* storage unavailable (private mode) — actions still work in-memory */
     }
-  }, [overlays, created]);
+  }, [hydrated, overlays, created]);
 
   const api = useMemo<DecisionApi>(() => {
     // Created decisions (e.g. from a visualisation) sit alongside the seed and

@@ -162,7 +162,7 @@ function Lines({ layers }: { layers: Layer[] }) {
   const W = 620, H = 320, pad = 34;
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <p className="mb-1 text-[13px] font-semibold text-card-foreground">12-month trend (indexed to each layer's own range)</p>
+      <p className="mb-1 text-[13px] font-semibold text-card-foreground">12-month trend (indexed to each layer&apos;s own range)</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Trend lines">
         <line x1={pad} y1={H - pad} x2={W - 8} y2={H - pad} stroke="var(--chart-axis)" />
         {shown.map((l, li) => {

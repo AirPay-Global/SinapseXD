@@ -61,15 +61,23 @@ function entry(action: string, note?: string): AuditEntry {
 
 export function BerthProvider({ seed, children }: { seed: Berth[]; children: ReactNode }) {
   const [overlays, setOverlays] = useState<Overlays>({});
+  // See decision-store.tsx for why this guard is required: without it the
+  // persist effect overwrites real localStorage berth-review state on every
+  // mount, before the load effect's setState has taken effect.
+  const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => setOverlays(load()), []);
   useEffect(() => {
+    setOverlays(load());
+    setHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(overlays));
     } catch {
       /* private mode — in-memory only */
     }
-  }, [overlays]);
+  }, [hydrated, overlays]);
 
   const api = useMemo<BerthApi>(() => {
     const berths = seed.map((b) => {

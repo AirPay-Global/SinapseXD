@@ -64,15 +64,24 @@ function snapId(): string {
 
 export function ReportProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<Store>({});
+  // See decision-store.tsx for why this guard is required: both effects run
+  // in the same initial commit against the same (still-empty) `store`
+  // closure, so without it the persist effect overwrites real localStorage
+  // data — including "immutable" approved report snapshots — on every mount.
+  const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => setStore(load()), []);
   useEffect(() => {
+    setStore(load());
+    setHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!hydrated) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SEED_VERSION, reports: store }));
     } catch {
       /* private mode */
     }
-  }, [store]);
+  }, [hydrated, store]);
 
   const api = useMemo<ReportApi>(() => {
     const reports: Report[] = [
