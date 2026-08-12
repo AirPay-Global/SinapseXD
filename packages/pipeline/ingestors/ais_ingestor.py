@@ -1,14 +1,14 @@
 """AIS vessel-position ingestor. Queue: `ais.vessel.positions`.
 
-Provider-swappable via AIS_PROVIDER: 'aishub' (free, dev/testing — default),
-'marinetraffic', or 'kpler' (both commercial, production-grade AIS sources —
-the Kpler provider was built and verified against Kpler's real published
-OpenAPI spec; MarineTraffic's was built from general public API knowledge
-since its docs host is blocked by this environment's egress policy). Spire
-drops in the same way later. No change to normalise() or the queue either
-way — every provider maps onto the same VesselPosition shape. Selection is
-by environment — no key set means the worker stays idle and dashboards
-render from demo data (per the standalone-XD build focus).
+Provider-swappable via AIS_PROVIDER: 'kpler' (commercial, production-grade —
+default, since this is the AIS key actually provisioned for this account;
+built and verified against Kpler's real published OpenAPI spec), 'aishub'
+(free, dev/testing fallback), or 'marinetraffic' (built from general public
+API knowledge since its docs host is blocked by this environment's egress
+policy). Spire drops in the same way later. No change to normalise() or the
+queue either way — every provider maps onto the same VesselPosition shape.
+No key set means the worker stays idle and dashboards render from demo data
+(per the standalone-XD build focus).
 
 Runs as a Render background worker, so it must stay alive: poll_forever()
 loops run() on an interval (default 60s, matching AISHub's documented
@@ -41,7 +41,7 @@ class AisIngestor(BaseIngestor):
     pillar = "ais"
 
     def __init__(self) -> None:
-        provider = os.environ.get("AIS_PROVIDER", "aishub").lower()
+        provider = os.environ.get("AIS_PROVIDER", "kpler").lower()
         if provider == "aishub":
             self.provider = AISHubProvider()
         elif provider == "marinetraffic":
