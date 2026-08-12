@@ -107,6 +107,54 @@ def _show(client, queue: str, limit: int = 3) -> None:
         print(f"    data={json.dumps(job.get('data'), default=str)[:300]}")
 
 
+def _diagnose(client, queue: str, sample: int = 3) -> None:
+    """Run dead-lettered payloads through their real handler against the real
+    schema, inside a transaction that is always rolled back. Reproduces the
+    actual exception now, rather than relying on a worker log that has since
+    rolled off — which is the whole reason a backlog can sit here
+    unexplained. Writes nothing."""
+    items = client.lrange(f"bull:{queue}:dead", 0, sample - 1)
+    if not items:
+        print(f"No dead letters on {queue}.")
+        return
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        print("DATABASE_URL is not set — cannot reproduce handler failures.", file=sys.stderr)
+        sys.exit(1)
+    import psycopg
+
+    handler = HANDLERS.get(queue)
+    if handler is None:
+        print(f"No handler registered for {queue}.", file=sys.stderr)
+        sys.exit(1)
+    conn = psycopg.connect(url, prepare_threshold=None)
+    print(f"Replaying {len(items)} payload(s) from {queue} against the live schema "
+          f"(rolled back, nothing written):\n")
+    for raw in items:
+        job = _decode(raw)
+        if job is None:
+            print("  (unparseable JSON)\n")
+            continue
+        record = job.get("data", job)
+        print(f"  ts={job.get('ts')}")
+        print(f"  data={json.dumps(record, default=str)[:240]}")
+        succeeded = False
+        try:
+            with conn.transaction():
+                handler(conn, record)
+                succeeded = True
+                # psycopg swallows Rollback raised inside the block: it undoes
+                # the work and resumes after the `with`. This is how a
+                # diagnostic run stays read-only even when the handler works.
+                raise psycopg.Rollback
+        except Exception as exc:
+            succeeded = False
+            print(f"  -> STILL FAILS: {type(exc).__name__}: {exc}\n")
+            conn.rollback()
+        if succeeded:
+            print("  -> SUCCEEDS now (original cause is fixed; safe to replay)\n")
+
+
 def _replay(client, queue: str) -> None:
     dead_key, wait_key = f"bull:{queue}:dead", f"bull:{queue}:wait"
     items = client.lrange(dead_key, 0, -1)
@@ -149,6 +197,9 @@ def _purge(client, queue: str) -> None:
 def main() -> None:
     p = argparse.ArgumentParser(description="Inspect and replay dead-lettered jobs.")
     p.add_argument("--show", metavar="QUEUE", help="sample payloads and error counts")
+    p.add_argument("--diagnose", metavar="QUEUE",
+                   help="re-run sample payloads against the live schema (rolled back) "
+                        "to see whether they still fail, and why")
     p.add_argument("--replay", metavar="QUEUE", help="move dead letters back onto `wait`")
     p.add_argument("--purge", metavar="QUEUE", help="permanently discard them (asks first)")
     args = p.parse_args()
@@ -156,13 +207,16 @@ def main() -> None:
     queues = list(HANDLERS.keys())
     client = _client()
 
-    for flag, name in (("show", args.show), ("replay", args.replay), ("purge", args.purge)):
+    for flag, name in (("show", args.show), ("replay", args.replay),
+                       ("purge", args.purge), ("diagnose", args.diagnose)):
         if name and name not in queues:
             print(f"Unknown queue {name!r}. Known: {', '.join(queues)}", file=sys.stderr)
             sys.exit(1)
 
     if args.show:
         _show(client, args.show)
+    elif args.diagnose:
+        _diagnose(client, args.diagnose)
     elif args.replay:
         _replay(client, args.replay)
     elif args.purge:

@@ -96,6 +96,22 @@ def test_job_exhausting_max_attempts_is_dead_lettered_not_lost():
     assert json.loads(dead[0])["attempts"] == MAX_ATTEMPTS
 
 
+def test_dead_letter_records_the_real_exception_not_a_placeholder():
+    """A dead letter must carry the actual error. Worker logs roll off and
+    are keyed by time rather than by job, so "see worker logs" is useless by
+    the time anyone inspects a backlog — which is exactly what happened with
+    the 2,298 jobs found in production."""
+    redis_client = fakeredis.FakeStrictRedis()
+    conn = _FakeConn()
+    conn.fail_next()
+    _enqueue(redis_client, QUEUE, {"portId": "p1"}, attempts=MAX_ATTEMPTS - 1)
+
+    SilverConsumer(redis_client, conn, queues=[QUEUE]).drain_once()
+
+    dead = json.loads(redis_client.lrange(f"bull:{QUEUE}:dead", 0, -1)[0])
+    assert dead["lastError"] == "RuntimeError: simulated handler failure"
+
+
 def test_successful_job_is_removed_from_processing_and_wait():
     redis_client = fakeredis.FakeStrictRedis()
     conn = _FakeConn()

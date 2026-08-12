@@ -97,14 +97,19 @@ class SilverConsumer:
             self.conn.commit()
             self.redis.lrem(proc_key, 1, raw_payload)
             return True
-        except Exception:
+        except Exception as exc:
             self.conn.rollback()
             attempts = self._attempts(job) + 1
             logger.exception("Silver upsert failed on %s (attempt %d/%d)", queue, attempts, MAX_ATTEMPTS)
             self.redis.lrem(proc_key, 1, raw_payload)
             if attempts >= MAX_ATTEMPTS:
                 job["attempts"] = attempts
-                job["lastError"] = "handler raised — see worker logs for traceback"
+                # Record the actual exception, not a pointer to logs. Worker
+                # logs roll off and are keyed by time, not by job — by the
+                # time anyone inspects a dead letter the traceback is usually
+                # long gone, which is exactly what happened with the 2,298
+                # jobs that accumulated here.
+                job["lastError"] = f"{type(exc).__name__}: {exc}"[:500]
                 self.redis.lpush(self._dead_key(queue), json.dumps(job))
                 logger.error("%s job exhausted %d attempts; moved to dead-letter list", queue, MAX_ATTEMPTS)
             else:
