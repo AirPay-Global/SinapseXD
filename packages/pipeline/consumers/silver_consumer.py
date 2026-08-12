@@ -143,12 +143,27 @@ class SilverConsumer:
                     processed += 1
         return processed
 
-    def run(self, poll_seconds: float = 2.0) -> None:
+    def run(self, poll_seconds: float = 2.0, max_iterations: int | None = None) -> None:
+        """Long-running loop for the Render worker process. Each iteration
+        (including recover_stale()) is guarded: a transient Redis/Postgres
+        connectivity blip must not crash the whole worker and trigger
+        Render's crash-loop suspension — it should log and retry next cycle,
+        same pattern as ais_ingestor.poll_forever(). max_iterations is
+        test-only, to make the loop terminate rather than run forever."""
         logger.info("Silver consumer watching queues: %s", ", ".join(self.queues))
-        self.recover_stale()
-        while True:
-            if self.drain_once() == 0:
+        try:
+            self.recover_stale()
+        except Exception:
+            logger.exception("recover_stale() failed at startup; continuing without it")
+        i = 0
+        while max_iterations is None or i < max_iterations:
+            try:
+                if self.drain_once() == 0:
+                    time.sleep(poll_seconds)
+            except Exception:
+                logger.exception("Silver consumer iteration failed; will retry next cycle")
                 time.sleep(poll_seconds)
+            i += 1
 
 
 def _main() -> None:

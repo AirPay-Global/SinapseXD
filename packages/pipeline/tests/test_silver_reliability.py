@@ -146,6 +146,36 @@ def test_recover_stale_reclaims_jobs_orphaned_mid_process():
     assert conn.commits == 1
 
 
+def test_run_survives_transient_redis_error_instead_of_crashing(monkeypatch):
+    """Regression test for the actual crash-loop cause found in production:
+    drain_once()'s Redis calls (llen/lmove) sit outside _process()'s
+    try/except, so an unhandled connection blip there used to propagate out
+    of run()'s while-loop and kill the whole worker process — which Render
+    then crash-loop-suspended after repeated restarts. run() must catch and
+    continue instead."""
+    redis_client = fakeredis.FakeStrictRedis()
+    conn = _FakeConn()
+    consumer = SilverConsumer(redis_client, conn, queues=[QUEUE])
+
+    calls = {"n": 0}
+    real_llen = consumer.redis.llen
+
+    def _flaky_llen(key):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ConnectionError("simulated transient Redis blip")
+        return real_llen(key)
+
+    monkeypatch.setattr(consumer.redis, "llen", _flaky_llen)
+    monkeypatch.setattr("time.sleep", lambda *_: None)
+
+    # Must not raise — the first iteration's simulated blip is swallowed and
+    # logged, and the loop keeps going for the second iteration.
+    consumer.run(poll_seconds=0, max_iterations=2)
+
+    assert calls["n"] >= 2
+
+
 def test_unhandled_queue_name_is_dead_lettered_not_dropped_silently():
     redis_client = fakeredis.FakeStrictRedis()
     conn = _FakeConn()
