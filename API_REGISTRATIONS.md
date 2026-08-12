@@ -64,7 +64,7 @@ Required for trade analytics, market intelligence, and financial data pillars.
 | 15 | **UN Comtrade API** | Official UN trade statistics — imports/exports by country, commodity, partner | https://comtrade.un.org/developers | **Free** — API key registration required |
 | 16 | **World Bank Open Data API** | Trade indicators, infrastructure data, economic development stats | https://data.worldbank.org/developers | **Free** |
 | 17 | **ITC Trade Map API** | Detailed bilateral trade flows, tariff data, NTM analysis — Africa-specific depth | https://www.trademap.org/ApiIntroduction.aspx | Contact ITC for academic/development pricing |
-| 18 | **Kpler** | Commodity cargo tracking (oil, grain, metals) — vessel-level cargo visibility | https://www.kpler.com | Enterprise pricing. Request Africa commodity plan |
+| 18 | **Kpler AIS API** ✅ wired (`AIS_PROVIDER=kpler`, `KPLER_API_KEY`) | Vessel-level AIS positions — the account's provisioned key covers the AIS product, not the commodity/cargo-tracking product | https://www.kpler.com | Enterprise pricing |
 | 19 | **African Development Bank Open Data** | AfDB economic indicators, infrastructure investment data, regional statistics | https://dataportal.afdb.org/api | **Free** — registration required |
 
 ---
