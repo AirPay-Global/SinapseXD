@@ -123,6 +123,83 @@ def test_fetch_sends_basic_literal_key_header_and_bbox_filter(monkeypatch):
     assert captured["params"]["filter"] == "BBOX(position, -20.0, -35.0, 52.0, 15.0)"
 
 
+def test_fetch_historical_sends_time_range_and_vessel_scope(monkeypatch):
+    import httpx
+
+    captured = {}
+
+    class _FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"features": [SPEC_FEATURE]}
+
+    def _fake_get(url, params=None, headers=None, timeout=None):
+        captured["url"] = url
+        captured["params"] = params
+        captured["headers"] = headers
+        return _FakeResponse()
+
+    monkeypatch.setattr(httpx, "get", _fake_get)
+    provider = KplerAisProvider(api_key="my-key")
+    result = provider.fetch_historical(
+        start_iso="2025-12-20T00:00:00Z",
+        end_iso="2025-12-21T00:00:00Z",
+        mmsis=["987654321"],
+    )
+    assert result == [SPEC_FEATURE]
+    assert captured["url"] == "https://api.kpler.com/v2/maritime/ais-historical"
+    assert "posDt BETWEEN '2025-12-20T00:00:00Z' AND '2025-12-21T00:00:00Z'" in captured["params"]["filter"]
+    assert "mmsi IN ('987654321')" in captured["params"]["filter"]
+    assert captured["params"]["downsample"] == "dynamic"
+
+
+def test_fetch_historical_sends_bbox_scope(monkeypatch):
+    import httpx
+
+    captured = {}
+
+    class _FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"features": []}
+
+    def _fake_get(url, params=None, headers=None, timeout=None):
+        captured["params"] = params
+        return _FakeResponse()
+
+    monkeypatch.setattr(httpx, "get", _fake_get)
+    provider = KplerAisProvider(api_key="my-key")
+    provider.fetch_historical(
+        start_iso="2025-12-20T00:00:00Z",
+        end_iso="2025-12-21T00:00:00Z",
+        bbox={"latmin": -35.0, "latmax": 15.0, "lonmin": -20.0, "lonmax": 52.0},
+        downsample="hourly",
+    )
+    assert "BBOX(position, -20.0, -35.0, 52.0, 15.0)" in captured["params"]["filter"]
+    assert captured["params"]["downsample"] == "hourly"
+
+
+def test_fetch_historical_requires_a_scope():
+    provider = KplerAisProvider(api_key="my-key")
+    import pytest
+
+    with pytest.raises(ValueError):
+        provider.fetch_historical(start_iso="2025-12-20T00:00:00Z", end_iso="2025-12-21T00:00:00Z")
+
+
+def test_fetch_historical_returns_empty_without_api_key(monkeypatch):
+    monkeypatch.delenv("KPLER_API_KEY", raising=False)
+    provider = KplerAisProvider(api_key="")
+    result = provider.fetch_historical(
+        start_iso="2025-12-20T00:00:00Z",
+        end_iso="2025-12-21T00:00:00Z",
+        mmsis=["1"],
+    )
+    assert result == []
+
+
 def test_fetch_returns_empty_on_400(monkeypatch):
     import httpx
 
