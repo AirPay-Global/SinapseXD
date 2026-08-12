@@ -101,7 +101,33 @@ def _table_stats() -> dict[str, tuple[int, str]]:
     return out
 
 
+def _print_config() -> None:
+    """Which provider each keyed pillar is actually configured to use, and
+    whether that provider's credential is present. A pillar polling a
+    provider whose key is unset returns [] forever and looks identical to
+    "no data available" downstream — this makes that visible instead."""
+    ais = os.environ.get("AIS_PROVIDER", "kpler (default)")
+    ais_key_var = {
+        "kpler": "KPLER_API_KEY",
+        "aishub": "AISHUB_USERNAME",
+        "marinetraffic": "MARINETRAFFIC_API_KEY",
+    }.get(ais.split()[0], None)
+    ais_key = os.environ.get(ais_key_var, "") if ais_key_var else ""
+    flag = "set" if ais_key else "*** NOT SET -> ingestor idles, produces nothing ***"
+    print(f"AIS_PROVIDER = {ais}   ({ais_key_var or 'unknown provider'}: {flag})")
+
+    others = [
+        ("Trade", "UN_COMTRADE_API_KEY"), ("Market/freight", "FREIGHTOS_API_KEY"),
+        ("Weather", "STORMGLASS_API_KEY"), ("Financial", "ALPHA_VANTAGE_API_KEY"),
+    ]
+    missing = [f"{label} ({var})" for label, var in others if not os.environ.get(var)]
+    if missing:
+        print("no credential set: " + ", ".join(missing))
+    print()
+
+
 def main() -> None:
+    _print_config()
     depths = _queue_depths()
     stats = _table_stats()
 

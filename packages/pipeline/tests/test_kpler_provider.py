@@ -212,6 +212,27 @@ def test_fetch_returns_empty_on_400(monkeypatch):
     assert provider.fetch({"latmin": -1, "latmax": 1, "lonmin": -1, "lonmax": 1}) == []
 
 
+def test_fetch_logs_actionable_message_on_rejected_key(monkeypatch, caplog):
+    """A 401/403 is an operator problem that will never recover on retry, and
+    the empty list it degrades to is indistinguishable from "no vessels in
+    this bbox" — which is exactly how a rejected key stayed invisible in
+    production for weeks. The log must say so explicitly."""
+    import httpx
+
+    class _FakeResponse:
+        status_code = 401
+        text = '{"status":401,"error":"Unauthorized","path":"/v2/maritime/ais-latest"}'
+
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: _FakeResponse())
+    provider = KplerAisProvider(api_key="rejected-key")
+    with caplog.at_level("ERROR"):
+        assert provider.fetch({"latmin": -1, "latmax": 1, "lonmin": -1, "lonmax": 1}) == []
+    msg = caplog.text
+    assert "REJECTED THE API KEY" in msg
+    assert "not fix itself on retry" in msg
+    assert "entitled to the AIS product" in msg
+
+
 def test_fetch_returns_empty_on_unexpected_shape(monkeypatch):
     import httpx
 

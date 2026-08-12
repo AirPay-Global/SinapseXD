@@ -182,6 +182,22 @@ class KplerAisProvider:
         except Exception:
             logger.exception("%s fetch failed", log_label)
             return []
+        if resp.status_code in (401, 403):
+            # Called out separately from other 4xx because an auth failure is
+            # an operator problem, not a transient one: it will not recover on
+            # the next poll, and the empty list it degrades to is otherwise
+            # indistinguishable from "no vessels in this bbox" — which is
+            # exactly how a rejected key stayed invisible in production.
+            logger.error(
+                "%s: Kpler REJECTED THE API KEY (HTTP %s). This will not fix itself on "
+                "retry. The 'Basic <key>' header format is correct per Kpler's own "
+                "OpenAPI spec, so a persistent 401/403 means the key is invalid, "
+                "inactive, or not entitled to the AIS product — Kpler licenses AIS "
+                "separately from its cargo/trade products. Confirm with Kpler that "
+                "this key covers the AIS API. Body: %s",
+                log_label, resp.status_code, resp.text[:300],
+            )
+            return []
         if resp.status_code >= 400:
             logger.error("%s HTTP %s: %s", log_label, resp.status_code, resp.text[:500])
             return []
