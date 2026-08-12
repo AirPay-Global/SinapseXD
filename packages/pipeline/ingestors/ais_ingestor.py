@@ -1,14 +1,18 @@
 """AIS vessel-position ingestor. Queue: `ais.vessel.positions`.
 
-Provider-swappable: AISHub (free, dev/testing) is wired now behind the
-AisProvider interface; Spire/MarineTraffic (production African coverage)
-drop in as additional providers with no change to normalise() or the queue.
-Selection is by environment — no key set means the worker stays idle and
-dashboards render from demo data (per the standalone-XD build focus).
+Provider-swappable via AIS_PROVIDER: 'aishub' (free, dev/testing — default)
+or 'marinetraffic' (commercial, the recommended production source for
+African coverage per API_REGISTRATIONS.md). Spire drops in the same way
+later. No change to normalise() or the queue either way — every provider
+maps onto the same VesselPosition shape. Selection is by environment — no
+key set means the worker stays idle and dashboards render from demo data
+(per the standalone-XD build focus).
 
 Runs as a Render background worker, so it must stay alive: poll_forever()
 loops run() on an interval (default 60s, matching AISHub's documented
-1-request/minute rate limit) rather than exiting after a single fetch.
+1-request/minute rate limit — MarineTraffic's quota is plan-dependent, so
+raise AIS_POLL_INTERVAL_SECONDS if your plan's hourly call budget needs it)
+rather than exiting after a single fetch.
 """
 from __future__ import annotations
 
@@ -18,6 +22,7 @@ import time
 
 from .base_ingestor import BaseIngestor
 from .providers.aishub import AISHubProvider
+from .providers.marinetraffic import MarineTrafficProvider
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +41,10 @@ class AisIngestor(BaseIngestor):
         provider = os.environ.get("AIS_PROVIDER", "aishub").lower()
         if provider == "aishub":
             self.provider = AISHubProvider()
+        elif provider == "marinetraffic":
+            self.provider = MarineTrafficProvider()
         else:
-            raise ValueError(f"Unknown AIS_PROVIDER: {provider!r} (only 'aishub' wired so far)")
+            raise ValueError(f"Unknown AIS_PROVIDER: {provider!r} (wired: 'aishub', 'marinetraffic')")
         self.source = provider
         self.bbox = AFRICA_BBOX
 

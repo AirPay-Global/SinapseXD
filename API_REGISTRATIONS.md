@@ -31,7 +31,7 @@ These are required to start building. Register for all before writing a single l
 
 | # | Service | Purpose | Register At | Cost |
 |---|---------|---------|-------------|------|
-| 7 | **MarineTraffic API** | Real-time vessel positions, ETAs, port calls, cargo info | https://www.marinetraffic.com/en/ais-api-services | Tiered from ~$50/mo. Request commercial plan for African coverage |
+| 7 | **MarineTraffic API** ✅ wired (`AIS_PROVIDER=marinetraffic`, `MARINETRAFFIC_API_KEY`) | Real-time vessel positions, ETAs, port calls, cargo info | https://www.marinetraffic.com/en/ais-api-services | Tiered from ~$50/mo. Request commercial plan for African coverage |
 | 8 | **Spire Maritime** | High-quality satellite AIS — best coverage for African waters and smaller vessels | https://spire.com/maritime | Enterprise pricing. Request Africa-focused quote |
 | 9 | **VesselFinder API** | Supplementary AIS feed, port calls, expected arrivals | https://www.vesselfinder.com/api | From $49/mo |
 | 10 | **AISHub** | Free community AIS data — useful for dev/testing | https://www.aishub.net/api | Free (community-based, lower quality) |
