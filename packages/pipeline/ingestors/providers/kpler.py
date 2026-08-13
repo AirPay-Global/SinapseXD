@@ -176,7 +176,13 @@ class KplerAisProvider:
         return self._get(HISTORICAL_URL, params, log_label="Kpler historical")
 
     def _get(self, url: str, params: dict, *, log_label: str) -> list[dict]:
-        headers = {"Authorization": f"Basic {self.api_key}"}
+        # Both headers exactly as Kpler's own curl examples show them. The
+        # Authorization value is the raw key after "Basic " — not base64 —
+        # which is unusual enough to be worth restating here.
+        headers = {
+            "Authorization": f"Basic {self.api_key}",
+            "Accept": "application/json",
+        }
         try:
             resp = httpx.get(url, params=params, headers=headers, timeout=self.timeout)
         except Exception:

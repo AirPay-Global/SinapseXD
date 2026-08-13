@@ -119,7 +119,10 @@ def test_fetch_sends_basic_literal_key_header_and_bbox_filter(monkeypatch):
     provider = KplerAisProvider(api_key="my-key")
     result = provider.fetch({"latmin": -35.0, "latmax": 15.0, "lonmin": -20.0, "lonmax": 52.0})
     assert result == [SPEC_FEATURE]
-    assert captured["headers"] == {"Authorization": "Basic my-key"}
+    # Raw key after "Basic ", not base64 — Kpler's own curl examples show
+    # exactly this, alongside an explicit Accept header.
+    assert captured["headers"]["Authorization"] == "Basic my-key"
+    assert captured["headers"]["Accept"] == "application/json"
     assert captured["params"]["filter"] == "BBOX(position, -20.0, -35.0, 52.0, 15.0)"
 
 
