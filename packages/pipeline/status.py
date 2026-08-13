@@ -101,28 +101,48 @@ def _table_stats() -> dict[str, tuple[int, str]]:
     return out
 
 
-def _print_config() -> None:
-    """Which provider each keyed pillar is actually configured to use, and
-    whether that provider's credential is present. A pillar polling a
-    provider whose key is unset returns [] forever and looks identical to
-    "no data available" downstream — this makes that visible instead."""
-    ais = os.environ.get("AIS_PROVIDER", "kpler (default)")
-    ais_key_var = {
-        "kpler": "KPLER_API_KEY",
-        "aishub": "AISHUB_USERNAME",
-        "marinetraffic": "MARINETRAFFIC_API_KEY",
-    }.get(ais.split()[0], None)
-    ais_key = os.environ.get(ais_key_var, "") if ais_key_var else ""
-    flag = "set" if ais_key else "*** NOT SET -> ingestor idles, produces nothing ***"
-    print(f"AIS_PROVIDER = {ais}   ({ais_key_var or 'unknown provider'}: {flag})")
+# Per pillar: the env var selecting its provider, that var's default, and
+# which credential each provider needs (None = keyless). Resolved at runtime
+# so the report reflects the provider actually configured, not a guess —
+# reporting a credential the selected provider never reads is worse than
+# reporting nothing, because it invents a problem that does not exist.
+PILLAR_PROVIDERS: dict[str, tuple[str, str, dict[str, str | None]]] = {
+    "AIS":            ("AIS_PROVIDER", "kpler", {
+        "kpler": "KPLER_API_KEY", "aishub": "AISHUB_USERNAME",
+        "marinetraffic": "MARINETRAFFIC_API_KEY"}),
+    "Port activity":  ("PORT_ACTIVITY_PROVIDER", "portwatch", {"portwatch": None}),
+    "Weather":        ("WEATHER_PROVIDER", "open-meteo", {
+        "open-meteo": None, "stormglass": "STORMGLASS_API_KEY"}),
+    "Trade":          ("TRADE_PROVIDER", "comtrade", {"comtrade": "UN_COMTRADE_API_KEY"}),
+    "Market/freight": ("MARKET_PROVIDER", "freightos", {"freightos": "FREIGHTOS_API_KEY"}),
+    "Financial":      ("FINANCIAL_PROVIDER", "worldbank", {"worldbank": None}),
+}
 
-    others = [
-        ("Trade", "UN_COMTRADE_API_KEY"), ("Market/freight", "FREIGHTOS_API_KEY"),
-        ("Weather", "STORMGLASS_API_KEY"), ("Financial", "ALPHA_VANTAGE_API_KEY"),
-    ]
-    missing = [f"{label} ({var})" for label, var in others if not os.environ.get(var)]
-    if missing:
-        print("no credential set: " + ", ".join(missing))
+
+def _print_config() -> None:
+    """Which provider each pillar is actually configured to use, and whether
+    what that provider needs is present. An ingestor whose credential is
+    unset returns [] forever, which downstream cannot distinguish from "no
+    data available" — this makes the difference visible."""
+    print(f"{'PILLAR':<16} {'PROVIDER':<16} REQUIREMENT")
+    print("-" * 78)
+    for label, (var, default, creds) in PILLAR_PROVIDERS.items():
+        chosen = os.environ.get(var, default).lower()
+        suffix = "" if os.environ.get(var) else "  (default)"
+        if chosen not in creds:
+            note = f"!! unknown provider — known: {', '.join(creds)}"
+        else:
+            need = creds[chosen]
+            if need is None:
+                note = "keyless"
+            elif os.environ.get(need):
+                note = f"{need}: set"
+            else:
+                note = f"{need}: *** NOT SET -> idles, produces nothing ***"
+        # PortWatch is keyless but additionally gated by a feature flag.
+        if label == "Port activity" and os.environ.get("PORTWATCH_ENABLED", "false").lower() != "true":
+            note = "keyless, but PORTWATCH_ENABLED is not 'true' -> idle"
+        print(f"{label:<16} {chosen + suffix:<16} {note}")
     print()
 
 
