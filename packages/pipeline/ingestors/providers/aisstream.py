@@ -322,31 +322,79 @@ def _probe() -> None:
     assumptions above can be checked against reality from a networked
     environment. Prints nothing secret."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+    def say(msg: str) -> None:
+        # flush every line: this runs in a Render Shell where stdout may be
+        # block-buffered, and a probe whose output appears only at exit is
+        # useless for telling "hung" apart from "quietly working".
+        print(msg, flush=True)
+
     key = os.environ.get("AISSTREAM_API_KEY", "")
-    print(f"AISSTREAM_API_KEY: {'set, %d chars' % len(key) if key else '*** NOT SET ***'}")
+    say(f"AISSTREAM_API_KEY: {'set, %d chars' % len(key) if key else '*** NOT SET ***'}")
     if not key:
         return
+    import socket
     import websocket
 
+    host = "stream.aisstream.io"
+    # Check plain TCP reachability first. If egress to the host is blocked
+    # this fails here in seconds with a clear error, instead of looking like
+    # a WebSocket or credential problem later.
+    say(f"[1/4] TCP connect to {host}:443 ...")
+    t0 = time.monotonic()
+    try:
+        socket.create_connection((host, 443), timeout=10).close()
+        say(f"      ok ({time.monotonic() - t0:.1f}s)")
+    except Exception as exc:
+        say(f"      FAILED: {type(exc).__name__}: {exc}")
+        say("      Outbound TCP/443 to aisstream.io is blocked from this host.")
+        return
+
     bbox = {"latmin": -35.0, "latmax": 15.0, "lonmin": -20.0, "lonmax": 52.0}
-    print(f"subscribing with BoundingBoxes={_bbox_payload(bbox)}  (lat first!)")
-    ws = websocket.create_connection(WS_URL, timeout=15)
-    ws.send(json.dumps({"APIKey": key, "BoundingBoxes": _bbox_payload(bbox)}))
+    say(f"[2/4] WebSocket handshake to {WS_URL} ...")
+    t0 = time.monotonic()
+    try:
+        ws = websocket.create_connection(WS_URL, timeout=15)
+    except Exception as exc:
+        say(f"      FAILED after {time.monotonic() - t0:.1f}s: {type(exc).__name__}: {exc}")
+        return
+    say(f"      connected ({time.monotonic() - t0:.1f}s)")
+
+    sub = {"APIKey": key, "BoundingBoxes": _bbox_payload(bbox)}
+    say(f"[3/4] sending subscription, BoundingBoxes={_bbox_payload(bbox)} (lat first)")
+    try:
+        ws.send(json.dumps(sub))
+    except Exception as exc:
+        say(f"      FAILED: {type(exc).__name__}: {exc}")
+        ws.close()
+        return
+
+    window = 20
+    say(f"[4/4] listening for {window}s (quiet until a new message type arrives) ...")
     seen: dict[str, dict] = {}
-    deadline = time.monotonic() + 20
+    count = 0
+    deadline = time.monotonic() + window
     while time.monotonic() < deadline and len(seen) < 3:
         try:
             ws.settimeout(max(1.0, deadline - time.monotonic()))
             msg = json.loads(ws.recv())
         except Exception as exc:
-            print(f"recv ended: {type(exc).__name__}: {exc}")
+            say(f"      recv ended after {count} message(s): {type(exc).__name__}: {exc}")
             break
+        count += 1
+        if isinstance(msg, dict) and msg.get("error"):
+            say(f"\nSERVER ERROR: {msg['error']}")
+            say("Check the key at https://aisstream.io/apikeys — a revoked key still "
+                "appears there, marked invalid.")
+            ws.close()
+            return
         mt = msg.get("MessageType", "?")
         if mt not in seen:
             seen[mt] = msg
-            print(f"\n--- first {mt} ---")
-            print(json.dumps(msg, indent=2)[:1500])
+            say(f"\n--- first {mt} (message #{count}) ---")
+            say(json.dumps(msg, indent=2)[:1500])
     ws.close()
+    say(f"\nreceived {count} message(s) in the window")
     if not seen:
         print("\nNo messages received. Check the key, and that the bbox is lat-first.")
         return
