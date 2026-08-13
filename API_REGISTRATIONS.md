@@ -35,8 +35,10 @@ These are required to start building. Register for all before writing a single l
 | 8 | **Spire Maritime** | High-quality satellite AIS — best coverage for African waters and smaller vessels | https://spire.com/maritime | Enterprise pricing. Request Africa-focused quote |
 | 9 | **VesselFinder API** | Supplementary AIS feed, port calls, expected arrivals | https://www.vesselfinder.com/api | From $49/mo |
 | 10 | **AISHub** | Free community AIS data — useful for dev/testing | https://www.aishub.net/api | Free (community-based, lower quality) |
+| 10a | **AISStream.io** ✅ wired (`AIS_PROVIDER=aisstream`, `AISSTREAM_API_KEY`) | Free WebSocket AIS positions. **Currently the only working AIS source.** BETA — no SLA, models explicitly unstable | https://aisstream.io/apikeys | **Free** — sign in via GitHub |
+| 10b | **Kpler AIS API** ⚠️ wired but BLOCKED (`AIS_PROVIDER=kpler`, `KPLER_API_KEY`) | Vessel-level AIS. Keys return 401 — two separate keys and Kpler's own docs Playground all fail, indicating the subscription lacks the AIS entitlement. Awaiting Kpler support | https://www.kpler.com | Enterprise pricing |
 
-> **Note:** Start with MarineTraffic for development. Spire for production — satellite AIS gives significantly better coverage in African coastal waters.
+> **Status (Aug 2026):** AISStream is the only AIS source currently returning data. Kpler is blocked on an account entitlement, AISHub requires running a reciprocal receiver, and MarineTraffic/Spire need paid plans. Spire remains the production target — satellite AIS gives significantly better coverage in African coastal waters.
 
 ---
 
@@ -64,8 +66,6 @@ Required for trade analytics, market intelligence, and financial data pillars.
 | 15 | **UN Comtrade API** | Official UN trade statistics — imports/exports by country, commodity, partner | https://comtrade.un.org/developers | **Free** — API key registration required |
 | 16 | **World Bank Open Data API** | Trade indicators, infrastructure data, economic development stats | https://data.worldbank.org/developers | **Free** |
 | 17 | **ITC Trade Map API** | Detailed bilateral trade flows, tariff data, NTM analysis — Africa-specific depth | https://www.trademap.org/ApiIntroduction.aspx | Contact ITC for academic/development pricing |
-| 18 | **Kpler AIS API** ✅ wired (`AIS_PROVIDER=kpler`, `KPLER_API_KEY`) | Vessel-level AIS positions — the account's provisioned key covers the AIS product, not the commodity/cargo-tracking product | https://www.kpler.com | Enterprise pricing |
-| 20 | **AISStream.io** ✅ wired (`AIS_PROVIDER=aisstream`, `AISSTREAM_API_KEY`) | Free WebSocket AIS vessel positions — BETA, no SLA, models explicitly unstable. Stopgap while a commercial feed is arranged | https://aisstream.io/apikeys | **Free** — sign in via GitHub |
 | 19 | **African Development Bank Open Data** | AfDB economic indicators, infrastructure investment data, regional statistics | https://dataportal.afdb.org/api | **Free** — registration required |
 
 ---
