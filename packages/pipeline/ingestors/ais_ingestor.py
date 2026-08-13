@@ -24,6 +24,7 @@ import time
 
 from .base_ingestor import BaseIngestor
 from .providers.aishub import AISHubProvider
+from .providers.aisstream import AisStreamProvider
 from .providers.kpler import KplerAisProvider
 from .providers.marinetraffic import MarineTrafficProvider
 
@@ -48,8 +49,10 @@ class AisIngestor(BaseIngestor):
             self.provider = MarineTrafficProvider()
         elif provider == "kpler":
             self.provider = KplerAisProvider()
+        elif provider == "aisstream":
+            self.provider = AisStreamProvider()
         else:
-            raise ValueError(f"Unknown AIS_PROVIDER: {provider!r} (wired: 'aishub', 'marinetraffic', 'kpler')")
+            raise ValueError(f"Unknown AIS_PROVIDER: {provider!r} (wired: 'aishub', 'aisstream', 'marinetraffic', 'kpler')")
         self.source = provider
         self.bbox = AFRICA_BBOX
 

@@ -65,6 +65,7 @@ Required for trade analytics, market intelligence, and financial data pillars.
 | 16 | **World Bank Open Data API** | Trade indicators, infrastructure data, economic development stats | https://data.worldbank.org/developers | **Free** |
 | 17 | **ITC Trade Map API** | Detailed bilateral trade flows, tariff data, NTM analysis — Africa-specific depth | https://www.trademap.org/ApiIntroduction.aspx | Contact ITC for academic/development pricing |
 | 18 | **Kpler AIS API** ✅ wired (`AIS_PROVIDER=kpler`, `KPLER_API_KEY`) | Vessel-level AIS positions — the account's provisioned key covers the AIS product, not the commodity/cargo-tracking product | https://www.kpler.com | Enterprise pricing |
+| 20 | **AISStream.io** ✅ wired (`AIS_PROVIDER=aisstream`, `AISSTREAM_API_KEY`) | Free WebSocket AIS vessel positions — BETA, no SLA, models explicitly unstable. Stopgap while a commercial feed is arranged | https://aisstream.io/apikeys | **Free** — sign in via GitHub |
 | 19 | **African Development Bank Open Data** | AfDB economic indicators, infrastructure investment data, regional statistics | https://dataportal.afdb.org/api | **Free** — registration required |
 
 ---

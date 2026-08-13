@@ -5,3 +5,4 @@ pyarrow>=17.0
 pydantic>=2.8
 python-dotenv>=1.0
 sentry-sdk>=2.0
+websocket-client>=1.7

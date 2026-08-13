@@ -109,6 +109,7 @@ def _table_stats() -> dict[str, tuple[int, str]]:
 PILLAR_PROVIDERS: dict[str, tuple[str, str, dict[str, str | None]]] = {
     "AIS":            ("AIS_PROVIDER", "kpler", {
         "kpler": "KPLER_API_KEY", "aishub": "AISHUB_USERNAME",
+        "aisstream": "AISSTREAM_API_KEY",
         "marinetraffic": "MARINETRAFFIC_API_KEY"}),
     "Port activity":  ("PORT_ACTIVITY_PROVIDER", "portwatch", {"portwatch": None}),
     "Weather":        ("WEATHER_PROVIDER", "open-meteo", {
